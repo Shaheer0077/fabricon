@@ -56,7 +56,7 @@ const Hero = () => {
                         whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(255, 77, 0, 0.2)" }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => navigate('/catalog')}
-                        className="bg-[#111827] text-white px-12 py-5 rounded-full font-black text-lg flex items-center gap-3 mx-auto transition-all group"
+                        className="bg-[#111827] text-white px-12 py-5 rounded-xl font-black text-lg flex items-center gap-3 mx-auto transition-all group"
                     >
                         Explore Products
                         <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />

@@ -7,9 +7,11 @@ import Catalog from './pages/Catalog';
 import ProductList from './pages/ProductList';
 import Customizer from './pages/Customizer';
 import ProductView from './pages/ProductView';
+import Checkout from './pages/Checkout';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProductEdit from './pages/admin/AdminProductEdit';
+import AdminOrders from './pages/admin/AdminOrders';
 
 function App() {
   const location = useLocation();
@@ -26,10 +28,12 @@ function App() {
           <Route path="/search" element={<ProductList />} />
           <Route path="/product/:productId" element={<ProductView />} />
           <Route path="/customize/:productId" element={<Customizer />} />
+          <Route path="/checkout" element={<Checkout />} />
 
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/product/add" element={<AdminProductEdit />} />
           <Route path="/admin/product/edit/:id" element={<AdminProductEdit />} />
         </Routes>

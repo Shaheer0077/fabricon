@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, ExternalLink, Package, LayoutDashboard, LogOut, LayoutGrid, List, TrendingUp, Filter } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ExternalLink, Package, LayoutDashboard, LogOut, LayoutGrid, List, TrendingUp, Filter, ShoppingBag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import API from '../../api/client';
+import AdminSidebar from '../../components/admin/AdminSidebar';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AdminDashboard = () => {
@@ -57,36 +58,7 @@ const AdminDashboard = () => {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             {/* Sleek Sidebar */}
-            <div className="w-60 bg-[#0f172a] text-white hidden lg:flex flex-col fixed h-full shadow-2xl z-20">
-                <div className="p-6 mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-gradient-to-br from-[#ff4d00] to-[#ff7840] rounded-xl flex items-center justify-center font-black text-lg shadow-lg shadow-orange-500/20">F</div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-black tracking-widest uppercase">Fabricon</span>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Management Console</span>
-                        </div>
-                    </div>
-                </div>
-
-                <nav className="px-4 space-y-1 flex-grow">
-                    <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-3">Main Navigation</p>
-                    <Link to="/admin" className="flex items-center gap-3 px-4 py-3 bg-[#ff4d00]/10 text-[#ff4d00] rounded-xl font-bold transition-all">
-                        <LayoutDashboard size={18} /> <span className="text-sm">Catalog</span>
-                    </Link>
-                    <Link to="/" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-all group">
-                        <ExternalLink size={18} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /> <span className="text-sm">Storefront</span>
-                    </Link>
-                </nav>
-
-                <div className="p-4 border-t border-slate-800/50">
-                    <button
-                        onClick={logoutHandler}
-                        className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-red-400 w-full text-left font-bold transition-colors group rounded-xl hover:bg-red-500/5"
-                    >
-                        <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" /> <span className="text-sm">Sign Out</span>
-                    </button>
-                </div>
-            </div>
+            <AdminSidebar />
 
             {/* Main Content Area */}
             <div className="flex-grow lg:ml-60 p-6 md:p-8">
@@ -140,7 +112,7 @@ const AdminDashboard = () => {
                             { label: 'Total Items', value: products.length, icon: Package, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
                             { label: 'Active Categories', value: new Set(products.map(p => p.category)).size, icon: LayoutGrid, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
                             { label: 'Net Value', value: `$${products.reduce((acc, p) => acc + (p.price || 0), 0).toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-                            { label: 'Drafts', value: 0, icon: Edit2, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100' }
+                            { label: 'Total Orders', value: 'Live', icon: ShoppingBag, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100' }
                         ].map((stat, i) => (
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}

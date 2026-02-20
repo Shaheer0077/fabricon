@@ -16,6 +16,17 @@ const AdminProductEdit = () => {
     const [colors, setColors] = useState('');
     const [sizes, setSizes] = useState('');
     const [images, setImages] = useState([]);
+
+    // View States
+    const [views, setViews] = useState({
+        front: null,
+        back: null,
+        leftSleeve: null,
+        rightSleeve: null,
+        insideLabel: null,
+        outsideLabel: null
+    });
+
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -38,6 +49,19 @@ const AdminProductEdit = () => {
             setColors(data.colors ? data.colors.join(', ') : '');
             setSizes(data.sizes ? data.sizes.join(', ') : '');
             setImages(data.images || []);
+
+            // Set Views
+            if (data.views) {
+                setViews({
+                    front: data.views.front || null,
+                    back: data.views.back || null,
+                    leftSleeve: data.views.leftSleeve || null,
+                    rightSleeve: data.views.rightSleeve || null,
+                    insideLabel: data.views.insideLabel || null,
+                    outsideLabel: data.views.outsideLabel || null
+                });
+            }
+
             setLoading(false);
         } catch (error) {
             console.error(error);
@@ -49,6 +73,12 @@ const AdminProductEdit = () => {
         const file = e.target.files[0];
         if (!file) return;
         setImages([...images, file]);
+    };
+
+    const handleViewUpload = (e, viewName) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setViews(prev => ({ ...prev, [viewName]: file }));
     };
 
     const removeImage = (index) => {
@@ -68,6 +98,7 @@ const AdminProductEdit = () => {
             colors.split(',').map(c => c.trim()).filter(c => c).forEach(c => formData.append('colors', c));
             sizes.split(',').map(s => s.trim()).filter(s => s).forEach(s => formData.append('sizes', s));
 
+            // General Images
             images.forEach((img) => {
                 if (typeof img === 'string') {
                     formData.append('existingImages', img);
@@ -75,6 +106,14 @@ const AdminProductEdit = () => {
                     formData.append('images', img);
                 }
             });
+
+            // View Images
+            if (views.front instanceof File) formData.append('viewFront', views.front);
+            if (views.back instanceof File) formData.append('viewBack', views.back);
+            if (views.leftSleeve instanceof File) formData.append('viewLeftSleeve', views.leftSleeve);
+            if (views.rightSleeve instanceof File) formData.append('viewRightSleeve', views.rightSleeve);
+            if (views.insideLabel instanceof File) formData.append('viewInsideLabel', views.insideLabel);
+            if (views.outsideLabel instanceof File) formData.append('viewOutsideLabel', views.outsideLabel);
 
             if (id) {
                 await API.put(`/products/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -88,6 +127,30 @@ const AdminProductEdit = () => {
             setLoading(false);
         }
     };
+
+    const renderViewUpload = (label, viewKey) => (
+        <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+            <label className="cursor-pointer relative aspect-square bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center hover:border-[#ff4d00]/50 hover:bg-orange-50/20 transition-all group overflow-hidden">
+                {views[viewKey] ? (
+                    <img
+                        src={views[viewKey] instanceof File ? URL.createObjectURL(views[viewKey]) : (views[viewKey].startsWith('http') ? views[viewKey] : `http://localhost:5000${views[viewKey]}`)}
+                        alt={label}
+                        className="w-full h-full object-contain p-2 mix-blend-multiply"
+                    />
+                ) : (
+                    <div className="flex flex-col items-center">
+                        <Plus size={20} className="text-slate-300 group-hover:text-[#ff4d00] transition-colors" />
+                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">Upload</span>
+                    </div>
+                )}
+                <input type="file" className="hidden" onChange={(e) => handleViewUpload(e, viewKey)} accept="image/*" />
+            </label>
+            {views[viewKey] && (
+                <button onClick={() => setViews(prev => ({ ...prev, [viewKey]: null }))} className="text-[9px] text-red-500 font-bold hover:underline self-center">Remove</button>
+            )}
+        </div>
+    );
 
     if (loading && id) return <div className="h-screen flex items-center justify-center font-black text-slate-300 uppercase tracking-widest text-xs">Loading Blueprint...</div>;
 
@@ -117,9 +180,24 @@ const AdminProductEdit = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         {/* Media Column */}
                         <div className="lg:col-span-4 space-y-6">
+                            {/* Specific Views Section */}
                             <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                 <h3 className="text-xs font-black text-slate-900 mb-6 flex items-center gap-2 uppercase tracking-widest">
-                                    <ImageIcon size={14} className="text-[#ff4d00]" /> Product Visuals
+                                    <ImageIcon size={14} className="text-[#ff4d00]" /> Configuration Views
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {renderViewUpload('Front View', 'front')}
+                                    {renderViewUpload('Back View', 'back')}
+                                    {renderViewUpload('L. Sleeve', 'leftSleeve')}
+                                    {renderViewUpload('R. Sleeve', 'rightSleeve')}
+                                    {renderViewUpload('Inside', 'insideLabel')}
+                                    {renderViewUpload('Outside', 'outsideLabel')}
+                                </div>
+                            </section>
+
+                            <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                <h3 className="text-xs font-black text-slate-900 mb-6 flex items-center gap-2 uppercase tracking-widest">
+                                    <ImageIcon size={14} className="text-[#ff4d00]" /> Gallery Visuals
                                 </h3>
 
                                 <div className="grid grid-cols-2 gap-3 mb-4">

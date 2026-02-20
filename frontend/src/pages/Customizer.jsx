@@ -55,6 +55,13 @@ const Customizer = () => {
     const [loading, setLoading] = useState(true);
     const [productColor, setProductColor] = useState('#ffffff');
     const [view, setView] = useState('Front');
+    const [showPreview, setShowPreview] = useState(false);
+
+    // Multi-View State
+    const viewStates = useRef({}); // { 'Front': { json: object, preview: dataURL } }
+    const prevViewRef = useRef('Front');
+
+    const VIEW_OPTIONS = ['Front', 'Back', 'Left sleeve', 'Right sleeve', 'Inside label', 'Outside label'];
 
     const FONT_COMBINATIONS = [
         { name: 'Vintage Sport', text: 'VARSITY', font: 'Bebas Neue', size: 60, weight: '900', style: 'italic' },
@@ -131,11 +138,30 @@ const Customizer = () => {
         return `http://localhost:5000${finalPath}`;
     };
 
-    const baseImage = getProductImageUrl(product?.images?.[0]);
+    const getViewImage = (viewName) => {
+        if (!product) return null;
+        let url = null;
+        if (product.views) {
+            switch (viewName) {
+                case 'Front': url = product.views.front; break;
+                case 'Back': url = product.views.back; break;
+                case 'Left sleeve': url = product.views.leftSleeve; break;
+                case 'Right sleeve': url = product.views.rightSleeve; break;
+                case 'Inside label': url = product.views.insideLabel; break;
+                case 'Outside label': url = product.views.outsideLabel; break;
+            }
+        }
+        // Fallback for Front if missing
+        if (!url && viewName === 'Front') url = product.images?.[0];
+        // Placeholder if still missing
+        if (!url) return null;
 
-    // 1. Initialize Canvas (Only Once)
+        return getProductImageUrl(url);
+    };
+
+    // 1. Initialize Canvas (Run when loading completes)
     useEffect(() => {
-        if (!canvasRef.current || fabricCanvas.current) return;
+        if (loading || !canvasRef.current || fabricCanvas.current) return;
 
         console.log("Customizer: Initializing Canvas inside useEffect");
         try {
@@ -194,9 +220,36 @@ const Customizer = () => {
             });
 
             // Events
-            initCanvas.on('selection:created', (e) => setSelectedObject(e.target));
-            initCanvas.on('selection:updated', (e) => setSelectedObject(e.target));
-            initCanvas.on('selection:cleared', () => setSelectedObject(null));
+            const handleSelection = (e) => {
+                const active = initCanvas.getActiveObject();
+                // Filter out background objects from selection
+                if (active && active.data?.isBackground) {
+                    initCanvas.discardActiveObject();
+                    initCanvas.requestRenderAll();
+                    return;
+                }
+
+                console.log("Customizer: Selection detected", {
+                    eventType: 'selection',
+                    objectType: active?.type,
+                    text: active?.text
+                });
+
+                setSelectedObject(active);
+
+                // Auto-open Text tab if text is selected
+                if (active && (active.type === 'i-text' || active.type === 'text')) {
+                    console.log("Customizer: Switching to Text tab");
+                    setActiveTab('text');
+                }
+            };
+
+            initCanvas.on('selection:created', handleSelection);
+            initCanvas.on('selection:updated', handleSelection);
+            initCanvas.on('selection:cleared', () => {
+                console.log("Customizer: Selection cleared");
+                setSelectedObject(null);
+            });
             initCanvas.on('object:added', () => setCanvasObjects([...initCanvas.getObjects()]));
             initCanvas.on('object:removed', () => setCanvasObjects([...initCanvas.getObjects()]));
             initCanvas.on('object:modified', () => setCanvasObjects([...initCanvas.getObjects()]));
@@ -215,34 +268,45 @@ const Customizer = () => {
                 fabricCanvas.current = null;
             }
         };
-    }, [product]);
+    }, [loading]);
 
-    // 2. Load Product Scene
+    // 2. Load View Logic
     useEffect(() => {
         if (!canvas || !product) return;
 
-        const loadScene = () => {
-            console.log("Customizer: Loading Scene:", baseImage);
+        const loadBackground = (imageUrl) => {
+            console.log("Customizer: Loading Background:", imageUrl);
 
+            // Remove existing background elements
             canvas.getObjects().forEach(obj => {
                 if (obj.data?.isBackground) canvas.remove(obj);
             });
 
-            const loadingText = new fabric.Text("Applying Masked Color...", {
+            if (!imageUrl) {
+                const text = new fabric.Text("No Image Available for this View", {
+                    fontSize: 20, fill: '#cbd5e1', left: 250, top: 290, originX: 'center', originY: 'center',
+                    data: { isBackground: true }
+                });
+                canvas.add(text);
+                canvas.requestRenderAll();
+                return;
+            }
+
+            const loadingText = new fabric.Text("Loading View...", {
                 fontSize: 12, fill: '#94a3b8', left: 250, top: 290, originX: 'center', originY: 'center',
                 data: { isBackground: true }
             });
             canvas.add(loadingText);
             canvas.requestRenderAll();
 
-            fabric.Image.fromURL(baseImage, (img) => {
+            fabric.Image.fromURL(imageUrl, (img) => {
                 canvas.remove(loadingText);
                 if (!img) return console.error("Customizer: Image load failed");
 
                 const scale = Math.min(460 / img.width, 540 / img.height);
                 const center = { x: 250, y: 290 };
 
-                // 1. Texture Layer (Underlying fabric detail)
+                // 1. Texture Layer
                 img.set({
                     scaleX: scale, scaleY: scale,
                     left: center.x, top: center.y,
@@ -253,18 +317,8 @@ const Customizer = () => {
                 canvas.add(img);
                 canvas.sendToBack(img);
 
-                // 2. Color Mask Layer (The "Magic" Fit)
+                // 2. Color Mask Layer
                 img.clone((mask) => {
-                    // Force the mask to ignore "white" background if transparent pixels are missing
-                    // This creates a silhouette from a standard white-background PNG/JPG
-                    mask.filters = [
-                        new fabric.Image.filters.RemoveColor({
-                            color: '#ffffff',
-                            distance: 0.05 // Adjust if edges are jagged
-                        })
-                    ];
-                    mask.applyFilters();
-
                     mask.set({
                         absolutePositioned: true,
                         left: center.x, top: center.y,
@@ -285,12 +339,13 @@ const Customizer = () => {
                     });
 
                     canvas.add(colorOverlay);
-                    canvas.insertAt(colorOverlay, 1);
+                    // Ensure it's above texture (index 0) but below content
+                    canvas.moveTo(colorOverlay, 1);
                     setColorLayer(colorOverlay);
                     canvas.requestRenderAll();
                 });
 
-                // 3. Highlight Boost (Preserves shine)
+                // 3. Highlight Boost
                 img.clone((lights) => {
                     lights.set({
                         scaleX: scale, scaleY: scale,
@@ -308,17 +363,68 @@ const Customizer = () => {
             }, { crossOrigin: 'anonymous' });
         };
 
-        loadScene();
-    }, [canvas, product, baseImage]);
+        const handleViewChange = () => {
+            const prevView = prevViewRef.current;
+            console.log(`Customizer: Switching from ${prevView} to ${view}`);
 
-    // Separate Effect for Color Updates
+            // A. Save Previous State (if it wasn't just initialized)
+            if (canvas.getObjects().length > 0 || viewStates.current[prevView]) {
+                // Clone to avoid reference issues
+                const objects = canvas.getObjects().filter(obj => !obj.data?.isBackground);
+                if (objects.length > 0) {
+                    // We need to properly serialize. 
+                    // fabric.Canvas.toJSON includes all objects. 
+                    // We'll trust toJSON but then filter active objects out when restoring? 
+                    // Or better: Serialize ONLY non-background objects.
+                    const json = canvas.toDatalessJSON(['id', 'data', 'selectable', 'evented']);
+                    json.objects = json.objects.filter(obj => !obj.data?.isBackground);
+
+                    // Generate Preview Snapshot
+                    // Temporarily hide generic background text if any? No, preview should look like canvas.
+                    const previewUrl = canvas.toDataURL({ format: 'png', multiplier: 0.5 });
+
+                    viewStates.current[prevView] = {
+                        json: json,
+                        preview: previewUrl
+                    };
+                } else {
+                    // Empty state, maybe just save null or empty json to avoid restoring ghosts
+                    viewStates.current[prevView] = null;
+                }
+            }
+
+            // B. Prepare for New View
+            canvas.clear(); // This wipes everything
+            setSelectedObject(null);
+
+            // C. Load Background for New View
+            const imageUrl = getViewImage(view);
+            loadBackground(imageUrl);
+
+            // D. Restore Objects for New View
+            const savedState = viewStates.current[view];
+            if (savedState && savedState.json) {
+                console.log(`Customizer: Restoring state for ${view}`, savedState.json);
+                canvas.loadFromJSON(savedState.json, () => {
+                    canvas.requestRenderAll();
+                    // Re-assign background flags if lost? (Shouldn't be, since we filtered them OUT of JSON)
+                    // The objects coming back are USER objects.
+                });
+            }
+
+            prevViewRef.current = view;
+        };
+
+        handleViewChange();
+
+    }, [view, product, canvas]); // Re-run when view changes (or product loads)
+
+    // Separate Effect to Update Color on Current Layer
     useEffect(() => {
         if (colorLayer && canvas) {
             console.log("Customizer: Updating Color Layer Fill:", productColor);
             colorLayer.set('fill', productColor);
             canvas.requestRenderAll();
-        } else {
-            console.warn("Customizer: Color Update Skipped - Layer or Canvas missing", { hasLayer: !!colorLayer, hasCanvas: !!canvas });
         }
     }, [productColor, colorLayer, canvas]);
 
@@ -361,6 +467,26 @@ const Customizer = () => {
             setSelectedObject(imgObj); // Sync React state immediately
             canvas.requestRenderAll();
         }, { crossOrigin: 'anonymous' });
+    };
+
+    const handleOpenPreview = () => {
+        if (!canvas) return;
+        // Snapshot current view
+        const objects = canvas.getObjects().filter(obj => !obj.data?.isBackground);
+        // Even if empty, we might want to capture the background state?
+        // Actually, we just need a visual snapshot.
+        const previewUrl = canvas.toDataURL({ format: 'png', multiplier: 0.5 });
+
+        // Update state
+        const json = canvas.toDatalessJSON(['id', 'data', 'selectable', 'evented']);
+        json.objects = json.objects.filter(obj => !obj.data?.isBackground);
+
+        viewStates.current[view] = {
+            json: json,
+            preview: previewUrl
+        };
+
+        setShowPreview(true);
     };
 
     const addShape = (type) => {
@@ -502,7 +628,6 @@ const Customizer = () => {
         { id: 'fill', icon: Droplets, label: 'Fill' },
     ];
 
-    const VIEW_OPTIONS = ['Front', 'Back', 'Outside label', 'Inside label', 'Left sleeve', 'Right sleeve'];
 
     if (loading) return (
         <div className="h-screen flex items-center justify-center bg-white font-black text-slate-300 uppercase tracking-widest text-xs">
@@ -812,12 +937,19 @@ const Customizer = () => {
 
             {/* 3. Main Studio Workbench */}
             <div className="grow flex flex-col relative overflow-hidden">
-                <div className="h-14 bg-white flex items-center justify-between px-6 z-20">
+                <div className="h-14 bg-white flex items-center justify-between px-6 z-20 border-b border-slate-100">
                     <div className="flex items-center gap-2">
                         {VIEW_OPTIONS.map(v => (
                             <button key={v} onClick={() => setView(v)} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${view === v ? 'bg-[#ff4d00]/10 text-[#ff4d00]' : 'text-slate-400 hover:text-slate-600'}`}>{v}</button>
                         ))}
                     </div>
+
+                    <button
+                        onClick={handleOpenPreview}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                    >
+                        <Maximize2 size={14} /> Preview Mockups
+                    </button>
                 </div>
 
                 <div className="flex-grow flex items-center justify-center p-4 min-h-0 overflow-hidden">
@@ -841,23 +973,83 @@ const Customizer = () => {
                             <span className="text-3xl font-black text-slate-900 tracking-tighter">${product?.price?.toFixed(2)}</span>
                         </div>
                         <div className="text-center">
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1 block">Estimation</span>
-                            <p className="text-[11px] font-bold text-slate-500 italic">Expected ship: 48h</p>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Estimation</span>
+                            <p className="text-[11px] font-bold text-slate-500 ">Expected ship: 48h</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={handleDownload}
-                            className="px-8 py-4 bg-slate-50 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all"
+                            className="px-8 py-4 bg-black text-white rounded-md font-black text-[10px] uppercase tracking-widest hover:bg-[#ff4d00] transition-all"
                         >
                             Save Draft
                         </button>
-                        <button onClick={generateFinalImage} className="flex items-center gap-3 px-10 py-4 bg-[#ff4d00] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-2xl shadow-orange-500/20 active:scale-95">
-                            <ShoppingCart size={20} /> Checkout
+                        <button onClick={generateFinalImage} className="flex items-center gap-3 px-5 py-3 bg-black text-white rounded-md font-black text-[10px] uppercase tracking-widest hover:bg-[#ff4d00] transition-all shadow-2xl shadow-orange-500/20 active:scale-95">
+                            <ShoppingCart /> Checkout
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* Preview Modal */}
+            <AnimatePresence>
+                {showPreview && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-10"
+                        onClick={() => setShowPreview(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white rounded-3xl p-8 max-w-6xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Mockup Preview</h2>
+                                    <p className="text-xs font-bold text-slate-400 mt-1">Review all configuration angles</p>
+                                </div>
+                                <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={24} /></button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {VIEW_OPTIONS.map((v) => {
+                                    // Logic to determine what image to show
+                                    // 1. Snapshot from viewStates (most accurate for edits)
+                                    // 2. Raw Product Image (if no edits visited)
+                                    // 3. Fallback placeholder
+                                    let displayImage = null;
+
+                                    if (viewStates.current[v]?.preview) {
+                                        displayImage = viewStates.current[v].preview;
+                                    } else {
+                                        displayImage = getViewImage(v);
+                                    }
+
+                                    if (!displayImage) return null; // Skip if no image at all
+
+                                    return (
+                                        <div key={v} className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center">
+                                            <div className="relative aspect-[4/5] w-full bg-white rounded-xl overflow-hidden mb-4 shadow-sm">
+                                                <img
+                                                    src={displayImage}
+                                                    alt={v}
+                                                    className="w-full h-full object-contain mix-blend-multiply"
+                                                />
+                                            </div>
+                                            <span className="text-xs font-black text-slate-900 uppercase tracking-widest">{v}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }

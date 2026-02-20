@@ -18,9 +18,20 @@ export const getProducts = async (req, res) => {
 export const createProduct = async (req, res) => {
     try {
         const { title, description, price, category, colors, sizes } = req.body;
+        const files = req.files || {};
 
-        // Ensure files are processed correctly
-        const imageUrls = req.files ? req.files.map(file => `/${file.path.replace(/\\/g, '/')}`) : [];
+        // Process General Images
+        const imageUrls = files['images'] ? files['images'].map(file => `/${file.path.replace(/\\/g, '/')}`) : [];
+
+        // Process View Images
+        const views = {
+            front: files['viewFront'] ? `/${files['viewFront'][0].path.replace(/\\/g, '/')}` : '',
+            back: files['viewBack'] ? `/${files['viewBack'][0].path.replace(/\\/g, '/')}` : '',
+            leftSleeve: files['viewLeftSleeve'] ? `/${files['viewLeftSleeve'][0].path.replace(/\\/g, '/')}` : '',
+            rightSleeve: files['viewRightSleeve'] ? `/${files['viewRightSleeve'][0].path.replace(/\\/g, '/')}` : '',
+            insideLabel: files['viewInsideLabel'] ? `/${files['viewInsideLabel'][0].path.replace(/\\/g, '/')}` : '',
+            outsideLabel: files['viewOutsideLabel'] ? `/${files['viewOutsideLabel'][0].path.replace(/\\/g, '/')}` : ''
+        };
 
         const product = new Product({
             title,
@@ -30,6 +41,7 @@ export const createProduct = async (req, res) => {
             colors: colors ? (Array.isArray(colors) ? colors : colors.split(',')) : [],
             sizes: sizes ? (Array.isArray(sizes) ? sizes : sizes.split(',')) : [],
             images: imageUrls,
+            views
         });
 
         const createdProduct = await product.save();
@@ -80,6 +92,7 @@ export const updateProduct = async (req, res) => {
         const product = await Product.findById(req.params.id);
         if (product) {
             const { title, description, price, category, colors, sizes, existingImages } = req.body;
+            const files = req.files || {};
 
             product.title = title || product.title;
             product.description = description || product.description;
@@ -88,16 +101,27 @@ export const updateProduct = async (req, res) => {
             product.colors = colors ? (Array.isArray(colors) ? colors : colors.split(',')) : product.colors;
             product.sizes = sizes ? (Array.isArray(sizes) ? sizes : sizes.split(',')) : product.sizes;
 
-            // Handle Images
+            // Handle General Images
             let newImages = [];
-            if (req.files && req.files.length > 0) {
-                newImages = req.files.map(file => `/${file.path.replace(/\\/g, '/')}`);
+            if (files['images']) {
+                newImages = files['images'].map(file => `/${file.path.replace(/\\/g, '/')}`);
             }
 
             // If we have existing images passed back (multi-image support)
             const keptImages = existingImages ? (Array.isArray(existingImages) ? existingImages : [existingImages]) : [];
 
             product.images = [...keptImages, ...newImages];
+
+            // Handle Views
+            if (!product.views) product.views = {};
+
+            if (files['viewFront']) product.views.front = `/${files['viewFront'][0].path.replace(/\\/g, '/')}`;
+            if (files['viewBack']) product.views.back = `/${files['viewBack'][0].path.replace(/\\/g, '/')}`;
+            if (files['viewLeftSleeve']) product.views.leftSleeve = `/${files['viewLeftSleeve'][0].path.replace(/\\/g, '/')}`;
+            if (files['viewRightSleeve']) product.views.rightSleeve = `/${files['viewRightSleeve'][0].path.replace(/\\/g, '/')}`;
+            if (files['viewInsideLabel']) product.views.insideLabel = `/${files['viewInsideLabel'][0].path.replace(/\\/g, '/')}`;
+            if (files['viewOutsideLabel']) product.views.outsideLabel = `/${files['viewOutsideLabel'][0].path.replace(/\\/g, '/')}`;
+
 
             const updatedProduct = await product.save();
             res.json(updatedProduct);

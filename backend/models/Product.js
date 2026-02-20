@@ -8,6 +8,14 @@ const productSchema = new mongoose.Schema({
     colors: [String],
     sizes: [String],
     images: [String],
+    views: {
+        front: String,
+        back: String,
+        leftSleeve: String,
+        rightSleeve: String,
+        insideLabel: String,
+        outsideLabel: String
+    },
 
     customizable: {
         type: Boolean,

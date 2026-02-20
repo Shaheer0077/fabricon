@@ -192,7 +192,7 @@ const AdminDashboard = () => {
                                                         <p className="text-base font-black text-slate-900 underline decoration-[#ff4d00]/10 decoration-4 underline-offset-2">${product.price?.toFixed(2)}</p>
                                                     </td>
                                                     <td className="px-6 py-3 text-right">
-                                                        <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-0 translate-x-2">
+                                                        <div className="flex items-center justify-end gap-1.5">
                                                             <Link
                                                                 to={`/admin/product/edit/${product._id}`}
                                                                 className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 rounded-lg transition-all shadow-sm"

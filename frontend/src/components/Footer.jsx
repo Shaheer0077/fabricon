@@ -47,9 +47,9 @@ const Footer = () => {
                         <input
                             type="email"
                             placeholder="Enter your email node"
-                            className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#ff4d00]/50 transition-all font-medium text-sm flex-grow lg:w-80"
+                            className="bg-white/5 border border-white/10 rounded-md px-6 py-4 outline-none focus:border-[#ff4d00]/50 transition-all font-medium text-sm flex-grow lg:w-80"
                         />
-                        <button className="bg-[#ff4d00] hover:bg-white hover:text-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-orange-500/10">
+                        <button className="bg-[#ff4d00] hover:bg-white hover:text-slate-900 text-white px-8 py-4 rounded-md font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-orange-500/10">
                             Connect
                         </button>
                     </div>

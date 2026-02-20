@@ -56,11 +56,11 @@ const ProductList = () => {
     }, [category, searchQuery]);
 
     return (
-        <div className="bg-[#fafafa] min-h-screen pt-32 pb-20">
+        <div className="bg-[#fafafa] min-h-screen pt-24 pb-20">
             <div className="container mx-auto px-6 lg:px-12">
 
                 {/* Header section with Breadcrumbs */}
-                <div className="mb-12">
+                <div className="mb-6">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">
                         <Link to="/" className="hover:text-[#ff4d00] transition-colors">Home</Link>
                         <ChevronRight size={12} />
@@ -101,7 +101,7 @@ const ProductList = () => {
                 <div className="flex flex-col lg:flex-row gap-12">
                     {/* Sidebar */}
                     <div className="hidden lg:block w-72 flex-shrink-0">
-                        <div className="sticky top-32 p-8 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                        <div className="sticky top-24 p-8 bg-white rounded-xl border border-slate-100 shadow-sm">
                             <Sidebar />
                         </div>
                     </div>

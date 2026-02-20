@@ -12,7 +12,7 @@ const ProductCard = ({ product }) => {
             className="group premium-card flex flex-col p-4"
         >
             {/* Image Container */}
-            <div className="relative aspect-4/5 bg-slate-50 rounded-2xl overflow-hidden mb-6 flex items-center justify-center">
+            <div className="relative aspect-4/5 bg-slate-50 rounded-xl overflow-hidden mb-6 flex items-center justify-center">
                 {product.badge && (
                     <div className="absolute top-4 left-4 z-10 px-3 py-1.5 bg-white text-slate-900 text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm">
                         {product.badge}

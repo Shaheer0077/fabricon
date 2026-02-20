@@ -8,7 +8,8 @@ import {
     Minus,
     CheckCircle2,
     ShoppingBag,
-    Trash2
+    Trash2,
+    ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import API from '../api/client';
@@ -33,6 +34,7 @@ const Checkout = () => {
 
     const [orderPlaced, setOrderPlaced] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [activeColorPopup, setActiveColorPopup] = useState(null);
 
     if (!product) {
         return (
@@ -41,7 +43,7 @@ const Checkout = () => {
                     <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-6">No order data found</p>
                     <button
                         onClick={() => navigate('/catalog')}
-                        className="px-8 py-4 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-[#ff4d00] transition-colors"
+                        className="px-8 py-4 bg-black text-white rounded-md font-black uppercase tracking-widest text-[10px] hover:bg-[#ff4d00] transition-colors"
                     >
                         Return to Catalog
                     </button>
@@ -164,7 +166,7 @@ const Checkout = () => {
                     </p>
                     <button
                         onClick={() => navigate('/catalog')}
-                        className="w-full py-5 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-[#ff4d00] transition-all shadow-xl shadow-slate-200"
+                        className="w-full py-5 bg-black text-white rounded-md font-black text-xs uppercase tracking-[0.2em] hover:bg-[#ff4d00] transition-all shadow-xl shadow-slate-200"
                     >
                         Continue Shopping
                     </button>
@@ -186,7 +188,7 @@ const Checkout = () => {
                     <div className="lg:col-span-7 space-y-16">
                         <section>
                             <div className="flex items-center gap-6 mb-10">
-                                <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-lg shadow-slate-200">1</div>
+                                <div className="w-12 h-12 bg-black text-white rounded-md flex items-center justify-center font-black text-lg shadow-lg shadow-slate-200">1</div>
                                 <div>
                                     <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Delivery Details</h2>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Where should we send your creation?</p>
@@ -203,7 +205,7 @@ const Checkout = () => {
                                         value={formData.fullName}
                                         onChange={handleInputChange}
                                         placeholder="Your Name"
-                                        className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
+                                        className="w-full bg-white border border-slate-200 rounded-md px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
                                     />
                                 </div>
                                 <div className="col-span-2 md:col-span-1">
@@ -215,7 +217,7 @@ const Checkout = () => {
                                         value={formData.email}
                                         onChange={handleInputChange}
                                         placeholder="name@example.com"
-                                        className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
+                                        className="w-full bg-white border border-slate-200 rounded-md px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
                                     />
                                 </div>
                                 <div className="col-span-2 md:col-span-1">
@@ -226,8 +228,8 @@ const Checkout = () => {
                                         required
                                         value={formData.phone}
                                         onChange={handleInputChange}
-                                        placeholder="+92 307 8182447"
-                                        className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
+                                        placeholder="+92 307 8888487"
+                                        className="w-full bg-white border border-slate-200 rounded-md px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
                                     />
                                 </div>
                                 <div className="col-span-2">
@@ -239,7 +241,7 @@ const Checkout = () => {
                                         onChange={handleInputChange}
                                         placeholder="Street name and House number"
                                         rows={2}
-                                        className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all resize-none shadow-sm"
+                                        className="w-full bg-white border border-slate-200 rounded-md px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all resize-none shadow-sm"
                                     />
                                 </div>
                                 <div className="col-span-2 md:col-span-1">
@@ -251,7 +253,7 @@ const Checkout = () => {
                                         value={formData.city}
                                         onChange={handleInputChange}
                                         placeholder="Lahore"
-                                        className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
+                                        className="w-full bg-white border border-slate-200 rounded-md px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
                                     />
                                 </div>
                                 <div className="col-span-2 md:col-span-1">
@@ -263,7 +265,7 @@ const Checkout = () => {
                                         value={formData.zipCode}
                                         onChange={handleInputChange}
                                         placeholder="54000"
-                                        className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
+                                        className="w-full bg-white border border-slate-200 rounded-md px-6 py-4 text-xs font-bold outline-none focus:border-[#ff4d00] focus:ring-4 focus:ring-orange-50 transition-all shadow-sm"
                                     />
                                 </div>
                             </form>
@@ -271,7 +273,7 @@ const Checkout = () => {
 
                         <section>
                             <div className="flex items-center gap-6 mb-10">
-                                <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-lg shadow-slate-200">2</div>
+                                <div className="w-12 h-12 bg-black text-white rounded-md flex items-center justify-center font-black text-lg shadow-lg shadow-slate-200">2</div>
                                 <div>
                                     <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Stock & Specs</h2>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select quantities for each variant</p>
@@ -280,14 +282,14 @@ const Checkout = () => {
 
                             <div className="space-y-8">
                                 {/* Global Configuration: Fabric & Logo Type */}
-                                <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-8 grid grid-cols-2 gap-8">
+                                <div className="bg-white border border-slate-100 rounded-md p-8 grid grid-cols-2 gap-8">
                                     <div className="space-y-4">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pl-1">Primary Fabric</label>
                                         <div className="relative">
                                             <select
                                                 value={orderItems[0].fabric}
                                                 onChange={(e) => updateItem(0, 'fabric', e.target.value)}
-                                                className="w-full bg-white border border-slate-100 rounded-xl px-6 py-4 text-xs font-black text-slate-900 outline-none focus:border-black transition-all appearance-none cursor-pointer pr-12 shadow-sm"
+                                                className="w-full bg-white border border-slate-100 rounded-md px-6 py-4 text-xs font-black text-slate-900 outline-none focus:border-black transition-all appearance-none cursor-pointer pr-12 shadow-sm"
                                                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 20px center', backgroundSize: '16px' }}
                                             >
                                                 {['Cotton 100%', 'Cotton 75%', 'Heece 25%', 'Polyster 100%', 'Polyster Heece', 'Spendex'].map(f => (
@@ -304,7 +306,7 @@ const Checkout = () => {
                                             <select
                                                 value={orderItems[0].logoType}
                                                 onChange={(e) => updateItem(0, 'logoType', e.target.value)}
-                                                className="w-full bg-white border border-slate-100 rounded-xl px-6 py-4 text-xs font-black text-slate-900 outline-none focus:border-black transition-all appearance-none cursor-pointer pr-12 shadow-sm"
+                                                className="w-full bg-white border border-slate-100 rounded-md px-6 py-4 text-xs font-black text-slate-900 outline-none focus:border-black transition-all appearance-none cursor-pointer pr-12 shadow-sm"
                                                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 20px center', backgroundSize: '16px' }}
                                             >
                                                 {['Embroidery', 'DTF', 'Screen Print'].map(t => (
@@ -326,7 +328,7 @@ const Checkout = () => {
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 exit={{ opacity: 0, scale: 0.95 }}
                                                 transition={{ duration: 0.2 }}
-                                                className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative"
+                                                className="bg-white border border-slate-100 rounded-md p-6 shadow-sm hover:shadow-md transition-all group relative"
                                             >
                                                 <div className="flex flex-wrap items-center justify-between gap-6">
                                                     {/* Size Selector Group */}
@@ -337,7 +339,7 @@ const Checkout = () => {
                                                                 <button
                                                                     key={s}
                                                                     onClick={() => updateItem(index, 'size', s)}
-                                                                    className={`w-11 h-11 rounded-xl border-2 transition-all font-black text-xs ${item.size === s ? 'border-black bg-black text-white shadow-lg' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
+                                                                    className={`w-11 h-11 rounded-md border-2 transition-all font-black text-xs ${item.size === s ? 'border-black bg-black text-white shadow-lg' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
                                                                 >
                                                                     {s}
                                                                 </button>
@@ -346,20 +348,51 @@ const Checkout = () => {
                                                     </div>
 
                                                     {/* Base Color Group */}
-                                                    <div className="space-y-3 flex-1 min-w-[150px]">
+                                                    <div className="space-y-3 flex-1 min-w-[150px] relative">
                                                         <label className="text-[9px] font-black text-slate-300 uppercase tracking-widest block text-center">Base Color</label>
                                                         <div className="flex items-center justify-center">
-                                                            <div className="flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 shadow-inner">
+                                                            <button
+                                                                onClick={() => setActiveColorPopup(activeColorPopup === index ? null : index)}
+                                                                className="flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-md border border-slate-100 shadow-inner hover:border-[#ff4d00]/30 transition-all group/color"
+                                                            >
                                                                 <div className="w-5 h-6 rounded-md shadow-sm border-2 border-white ring-1 ring-slate-200" style={{ backgroundColor: item.color }} />
-                                                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Primary</span>
-                                                            </div>
+                                                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{item.color === (color || '#ffffff') ? 'Original' : 'Custom'}</span>
+                                                                <ChevronDown size={14} className="text-slate-400 group-hover/color:text-[#ff4d00] transition-colors" />
+                                                            </button>
                                                         </div>
+
+                                                        {/* Color Selection Popup */}
+                                                        {activeColorPopup === index && (
+                                                            <>
+                                                                <div className="fixed inset-0 z-20" onClick={() => setActiveColorPopup(null)} />
+                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white rounded-xl border border-slate-100 shadow-2xl p-4 z-30 w-52 animate-in fade-in zoom-in-95 duration-200">
+                                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 text-center">Select Variant Color</div>
+                                                                    <div className="flex flex-wrap gap-2 justify-center">
+                                                                        {product.colors?.map((c) => (
+                                                                            <button
+                                                                                key={c}
+                                                                                onClick={() => {
+                                                                                    updateItem(index, 'color', c);
+                                                                                    setActiveColorPopup(null);
+                                                                                }}
+                                                                                className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${item.color === c ? 'border-[#ff4d00] shadow-md scale-110' : 'border-slate-100'}`}
+                                                                                style={{ backgroundColor: c }}
+                                                                                title={c}
+                                                                            />
+                                                                        ))}
+                                                                    </div>
+                                                                    {(!product.colors || product.colors.length === 0) && (
+                                                                        <p className="text-[9px] text-slate-400 text-center italic">No other colors available</p>
+                                                                    )}
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
 
                                                     {/* Quantity Group */}
                                                     <div className="space-y-3">
                                                         <label className="text-[9px] font-black text-slate-300 uppercase tracking-widest block text-center">Batch Quantity</label>
-                                                        <div className="flex items-center bg-white rounded-2xl px-2 py-1.5 border-2 border-slate-100 group-hover:border-slate-200 transition-all shadow-sm">
+                                                        <div className="flex items-center bg-white rounded-md px-2 py-1.5 border-2 border-slate-100 group-hover:border-slate-200 transition-all shadow-sm">
                                                             <button onClick={() => updateItem(index, 'quantity', Math.max(1, item.quantity - 1))} className="w-8 h-10 flex items-center justify-center text-slate-300 hover:text-black transition-colors"><Minus size={16} /></button>
                                                             <span className="w-10 text-center text-sm font-black text-slate-900">{item.quantity}</span>
                                                             <button onClick={() => updateItem(index, 'quantity', item.quantity + 1)} className="w-8 h-10 flex items-center justify-center text-slate-300 hover:text-black transition-colors"><Plus size={16} /></button>
@@ -370,7 +403,7 @@ const Checkout = () => {
                                                     {orderItems.length > 1 && (
                                                         <button
                                                             onClick={() => removeItem(index)}
-                                                            className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 w-9 h-9 flex items-center justify-center rounded-xl bg-red-500 text-white shadow-lg shadow-red-200 z-20 hover:bg-black hover:shadow-black/20"
+                                                            className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 w-9 h-9 flex items-center justify-center rounded-md bg-red-500 text-white shadow-lg shadow-red-200 z-20 hover:bg-black hover:shadow-black/20"
                                                             title="Remove variant"
                                                         >
                                                             <Trash2 size={14} />
@@ -383,7 +416,7 @@ const Checkout = () => {
 
                                     <button
                                         onClick={addItem}
-                                        className="w-full py-6 bg-white border-2 border-dashed border-slate-100 rounded-3xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:border-[#ff4d00] hover:text-[#ff4d00] hover:bg-orange-50/20 transition-all flex items-center justify-center gap-4 group shadow-sm hover:shadow-md"
+                                        className="w-full py-6 bg-white border-2 border-dashed border-slate-100 rounded-md text-[10px] font-black uppercase tracking-widest text-slate-400 hover:border-[#ff4d00] hover:text-[#ff4d00] hover:bg-orange-50/20 transition-all flex items-center justify-center gap-4 group shadow-sm hover:shadow-md"
                                     >
                                         <div className="w-6 h-6 rounded-lg bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-300 group-hover:bg-[#ff4d00] group-hover:text-white transition-all">
                                             <Plus size={14} />
@@ -412,7 +445,7 @@ const Checkout = () => {
                                 <div className="flex flex-col justify-center flex-1">
                                     <span className="text-[10px] font-black text-[#ff4d00] uppercase tracking-widest mb-2 px-3 py-1 bg-orange-50 rounded-full self-start">{product.category}</span>
                                     <h4 className="text-2xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight">{product.title}</h4>
-                                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-md border border-slate-100">
                                         <div className="w-6 h-6 rounded-lg border-2 border-white shadow-sm" style={{ backgroundColor: color }} />
                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Custom Finish</span>
                                     </div>
@@ -468,7 +501,7 @@ const Checkout = () => {
                             <button
                                 onClick={handlePlaceOrder}
                                 disabled={loading}
-                                className={`w-full py-6 bg-black text-white rounded-xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-slate-300 hover:bg-[#ff4d00] hover:shadow-[#ff4d00]/30 transition-all active:scale-[0.98] relative overflow-hidden group flex items-center justify-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                className={`w-full py-6 bg-black text-white rounded-md font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-slate-300 hover:bg-[#ff4d00] hover:shadow-[#ff4d00]/30 transition-all active:scale-[0.98] relative overflow-hidden group flex items-center justify-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
                                 {loading ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

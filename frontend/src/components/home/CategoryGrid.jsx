@@ -2,23 +2,27 @@ import React from 'react';
 import { ChevronRight, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import Hoodie from '../../assets/Images/hoodie.png'
+import Men from '../../assets/Images/Men.png'
+import Women from '../../assets/Images/Women.png'
+import Kids from '../../assets/Images/Kids.png'
 
 const categories = [
     {
         name: 'Men',
-        img: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=800&auto=format&fit=crop',
+        img: Men,
     },
     {
         name: 'Women',
-        img: 'https://images.unsplash.com/photo-1506629082923-d9ad3393a884?q=80&w=800&auto=format&fit=crop',
+        img: Women,
     },
     {
         name: 'Kids',
-        img: 'https://images.unsplash.com/photo-1544816153-1f17fa370604?q=80&w=800&auto=format&fit=crop',
+        img: Kids,
     },
     {
         name: 'Hoodies',
-        img: 'https://static.cdn.printful.com/s/static/v877/images/homepage/fancy-product-images/img7b.png',
+        img: Hoodie,
     }
 ];
 
@@ -62,7 +66,7 @@ const CategoryGrid = () => {
                             viewport={{ once: true }}
                             transition={{ delay: i * 0.1 }}
                             onClick={() => navigate(`/catalog/${cat.name.toLowerCase()}`)}
-                            className="bg-[#f3f4f6] rounded-3xl overflow-hidden cursor-pointer relative group h-[300px]"
+                            className="bg-[#f3f4f6] rounded-xl overflow-hidden cursor-pointer relative group h-[300px]"
                         >
                             <img
                                 src={cat.img}
@@ -72,7 +76,7 @@ const CategoryGrid = () => {
 
                             {/* Title Label */}
                             <div className="absolute bottom-6 left-6 z-10">
-                                <span className="bg-white px-4 py-2 rounded-xl text-[10px] font-black text-slate-900 shadow-xl inline-block uppercase tracking-widest group-hover:bg-[#ff4d00] group-hover:text-white transition-all duration-300">
+                                <span className="bg-white px-4 py-2 rounded-md text-[10px] font-black text-slate-900 shadow-xl inline-block uppercase tracking-widest group-hover:bg-[#ff4d00] group-hover:text-white transition-all duration-300">
                                     {cat.name}
                                 </span>
                             </div>

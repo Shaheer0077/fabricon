@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import * as fabricModule from 'fabric';
 const fabric = fabricModule.fabric || fabricModule.default || fabricModule;
 console.log("Customizer: Module File Loaded", {
@@ -270,146 +272,154 @@ const Customizer = () => {
         };
     }, [loading]);
 
+    // Race condition prevention
+    const loadingViewRef = useRef(null);
+
     // 2. Load View Logic
     useEffect(() => {
         if (!canvas || !product) return;
 
-        const loadBackground = (imageUrl) => {
-            console.log("Customizer: Loading Background:", imageUrl);
+        const loadBackground = (imageUrl, viewName) => {
+            return new Promise((resolve) => {
+                console.log("Customizer: Loading Background:", imageUrl);
 
-            // Remove existing background elements
-            canvas.getObjects().forEach(obj => {
-                if (obj.data?.isBackground) canvas.remove(obj);
-            });
+                if (!imageUrl) {
+                    const text = new fabric.Text("No Image Available for this View", {
+                        fontSize: 20, fill: '#cbd5e1', left: 250, top: 290, originX: 'center', originY: 'center',
+                        data: { isBackground: true }
+                    });
+                    canvas.add(text);
+                    canvas.requestRenderAll();
+                    return resolve();
+                }
 
-            if (!imageUrl) {
-                const text = new fabric.Text("No Image Available for this View", {
-                    fontSize: 20, fill: '#cbd5e1', left: 250, top: 290, originX: 'center', originY: 'center',
+                const loadingText = new fabric.Text("Loading View...", {
+                    fontSize: 12, fill: '#94a3b8', left: 250, top: 290, originX: 'center', originY: 'center',
                     data: { isBackground: true }
                 });
-                canvas.add(text);
+                canvas.add(loadingText);
                 canvas.requestRenderAll();
-                return;
-            }
 
-            const loadingText = new fabric.Text("Loading View...", {
-                fontSize: 12, fill: '#94a3b8', left: 250, top: 290, originX: 'center', originY: 'center',
-                data: { isBackground: true }
-            });
-            canvas.add(loadingText);
-            canvas.requestRenderAll();
+                fabric.Image.fromURL(imageUrl, (img) => {
+                    // Check if view changed while loading
+                    if (loadingViewRef.current !== viewName) {
+                        return resolve();
+                    }
 
-            fabric.Image.fromURL(imageUrl, (img) => {
-                canvas.remove(loadingText);
-                if (!img) return console.error("Customizer: Image load failed");
+                    canvas.remove(loadingText);
+                    if (!img) {
+                        console.error("Customizer: Image load failed");
+                        return resolve();
+                    }
 
-                const scale = Math.min(460 / img.width, 540 / img.height);
-                const center = { x: 250, y: 290 };
+                    const scale = Math.min(460 / img.width, 540 / img.height);
+                    const center = { x: 250, y: 290 };
 
-                // 1. Texture Layer
-                img.set({
-                    scaleX: scale, scaleY: scale,
-                    left: center.x, top: center.y,
-                    originX: 'center', originY: 'center',
-                    selectable: false, evented: false,
-                    data: { isBackground: true, type: 'texture' }
-                });
-                canvas.add(img);
-                canvas.sendToBack(img);
-
-                // 2. Color Mask Layer
-                img.clone((mask) => {
-                    mask.set({
-                        absolutePositioned: true,
-                        left: center.x, top: center.y,
-                        originX: 'center', originY: 'center',
-                        scaleX: scale, scaleY: scale
-                    });
-
-                    const colorOverlay = new fabric.Rect({
-                        width: img.width * scale,
-                        height: img.height * scale,
-                        left: center.x, top: center.y,
-                        originX: 'center', originY: 'center',
-                        fill: productColor,
-                        globalCompositeOperation: 'multiply',
-                        selectable: false, evented: false,
-                        data: { isBackground: true, type: 'color' },
-                        clipPath: mask
-                    });
-
-                    canvas.add(colorOverlay);
-                    // Ensure it's above texture (index 0) but below content
-                    canvas.moveTo(colorOverlay, 1);
-                    setColorLayer(colorOverlay);
-                    canvas.requestRenderAll();
-                });
-
-                // 3. Highlight Boost
-                img.clone((lights) => {
-                    lights.set({
+                    // 1. Texture Layer
+                    img.set({
                         scaleX: scale, scaleY: scale,
                         left: center.x, top: center.y,
                         originX: 'center', originY: 'center',
-                        globalCompositeOperation: 'screen',
-                        opacity: 0.1,
                         selectable: false, evented: false,
-                        data: { isBackground: true, type: 'highlight' }
+                        data: { isBackground: true, type: 'texture' }
                     });
-                    canvas.add(lights);
-                    canvas.requestRenderAll();
-                });
+                    canvas.add(img);
+                    canvas.sendToBack(img);
 
-            }, { crossOrigin: 'anonymous' });
+                    // 2. Color Mask Layer
+                    img.clone((mask) => {
+                        if (loadingViewRef.current !== viewName) return;
+
+                        mask.set({
+                            absolutePositioned: true,
+                            left: center.x, top: center.y,
+                            originX: 'center', originY: 'center',
+                            scaleX: scale, scaleY: scale
+                        });
+
+                        const colorOverlay = new fabric.Rect({
+                            width: img.width * scale,
+                            height: img.height * scale,
+                            left: center.x, top: center.y,
+                            originX: 'center', originY: 'center',
+                            fill: productColor,
+                            globalCompositeOperation: 'multiply',
+                            selectable: false, evented: false,
+                            data: { isBackground: true, type: 'color' },
+                            clipPath: mask
+                        });
+
+                        canvas.add(colorOverlay);
+                        canvas.moveTo(colorOverlay, 1);
+                        setColorLayer(colorOverlay);
+
+                        // 3. Highlight Boost
+                        img.clone((lights) => {
+                            if (loadingViewRef.current !== viewName) return;
+
+                            lights.set({
+                                scaleX: scale, scaleY: scale,
+                                left: center.x, top: center.y,
+                                originX: 'center', originY: 'center',
+                                globalCompositeOperation: 'screen',
+                                opacity: 0.1,
+                                selectable: false, evented: false,
+                                data: { isBackground: true, type: 'highlight' }
+                            });
+                            canvas.add(lights);
+                            canvas.moveTo(lights, 2);
+                            canvas.requestRenderAll();
+                            resolve();
+                        });
+                    });
+
+                }, { crossOrigin: 'anonymous' });
+            });
         };
 
-        const handleViewChange = () => {
+        const handleViewChange = async () => {
             const prevView = prevViewRef.current;
             console.log(`Customizer: Switching from ${prevView} to ${view}`);
+            loadingViewRef.current = view;
 
-            // A. Save Previous State (if it wasn't just initialized)
+            // A. Save Previous State
             if (canvas.getObjects().length > 0 || viewStates.current[prevView]) {
-                // Clone to avoid reference issues
-                const objects = canvas.getObjects().filter(obj => !obj.data?.isBackground);
-                if (objects.length > 0) {
-                    // We need to properly serialize. 
-                    // fabric.Canvas.toJSON includes all objects. 
-                    // We'll trust toJSON but then filter active objects out when restoring? 
-                    // Or better: Serialize ONLY non-background objects.
-                    const json = canvas.toDatalessJSON(['id', 'data', 'selectable', 'evented']);
-                    json.objects = json.objects.filter(obj => !obj.data?.isBackground);
+                const json = canvas.toDatalessJSON(['id', 'data', 'selectable', 'evented']);
+                json.objects = json.objects.filter(obj => !obj.data?.isBackground);
+                const previewUrl = canvas.toDataURL({ format: 'png', multiplier: 0.5 });
 
-                    // Generate Preview Snapshot
-                    // Temporarily hide generic background text if any? No, preview should look like canvas.
-                    const previewUrl = canvas.toDataURL({ format: 'png', multiplier: 0.5 });
-
-                    viewStates.current[prevView] = {
-                        json: json,
-                        preview: previewUrl
-                    };
-                } else {
-                    // Empty state, maybe just save null or empty json to avoid restoring ghosts
-                    viewStates.current[prevView] = null;
-                }
+                viewStates.current[prevView] = {
+                    json: json,
+                    preview: previewUrl
+                };
             }
 
             // B. Prepare for New View
-            canvas.clear(); // This wipes everything
+            canvas.clear();
             setSelectedObject(null);
 
-            // C. Load Background for New View
+            // C. Load Background FIRST
             const imageUrl = getViewImage(view);
-            loadBackground(imageUrl);
+            await loadBackground(imageUrl, view);
 
-            // D. Restore Objects for New View
+            // D. Restore Objects AFTER Background is ready
+            if (loadingViewRef.current !== view) return;
+
             const savedState = viewStates.current[view];
-            if (savedState && savedState.json) {
-                console.log(`Customizer: Restoring state for ${view}`, savedState.json);
-                canvas.loadFromJSON(savedState.json, () => {
+            if (savedState && savedState.json && savedState.json.objects) {
+                console.log(`Customizer: Restoring objects for ${view}`);
+
+                // Use enlivenObjects instead of loadFromJSON to prevent clearing the background
+                fabric.util.enlivenObjects(savedState.json.objects, (enlivenedObjects) => {
+                    if (loadingViewRef.current !== view) return;
+
+                    enlivenedObjects.forEach(obj => {
+                        canvas.add(obj);
+                        // Ensure it stays on top of background
+                        canvas.bringToFront(obj);
+                    });
                     canvas.requestRenderAll();
-                    // Re-assign background flags if lost? (Shouldn't be, since we filtered them OUT of JSON)
-                    // The objects coming back are USER objects.
-                });
+                }, 'fabric');
             }
 
             prevViewRef.current = view;
@@ -596,25 +606,68 @@ const Customizer = () => {
         }
     };
 
-    const handleDownload = () => {
-        if (!canvas) return;
+    const handleDownloadAll = async () => {
+        if (!canvas || !product) return;
 
         try {
-            const dataURL = canvas.toDataURL({
-                format: 'png',
-                quality: 1,
-                multiplier: 2 // High resolution download
-            });
+            const zip = new JSZip();
+            const currentView = view;
 
-            const link = document.createElement('a');
-            link.download = `fabricon-design-${product?.title || 'custom'}.png`;
-            link.href = dataURL;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Save the current state of the canvas for the current view before switching
+            const currentViewJson = canvas.toDatalessJSON(['id', 'data', 'selectable', 'evented']);
+            currentViewJson.objects = currentViewJson.objects.filter(obj => !obj.data?.isBackground);
+            viewStates.current[currentView] = {
+                json: currentViewJson,
+                preview: canvas.toDataURL({ format: 'png', multiplier: 0.5 })
+            };
+
+            // Create a dedicated folder in the ZIP
+            const folder = zip.folder(`${product.title.replace(/\s+/g, '-').toLowerCase()}-renderings`);
+
+            // We need to iterate and render each view
+            for (const v of VIEW_OPTIONS) {
+                console.log(`Customizer: Capturing snapshot for ${v}...`);
+
+                // Set the view, which triggers the useEffect to load background and objects
+                setView(v);
+
+                // Wait for the useEffect to finish loading the background and objects for the new view
+                await new Promise(resolve => {
+                    const checkInterval = setInterval(() => {
+                        // Check if the view has been fully loaded and rendered by the useEffect
+                        if (prevViewRef.current === v) {
+                            clearInterval(checkInterval);
+                            // Add a small buffer to ensure all rendering is complete
+                            setTimeout(resolve, 500);
+                        }
+                    }, 100); // Check every 100ms
+                });
+
+                const dataURL = canvas.toDataURL({
+                    format: 'png',
+                    quality: 1,
+                    multiplier: 2
+                });
+
+                // Convert dataURL to Blob/Base64 for JSZip
+                const base64Data = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+                folder.file(`${v.toLowerCase()}.png`, base64Data, { base64: true });
+            }
+
+            // Restore original view
+            setView(currentView);
+
+            // Generate ZIP
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, `fabricon-${product.title.replace(/\s+/g, '-').toLowerCase()}-all-views.zip`);
+
         } catch (error) {
-            console.error('Error downloading image:', error);
+            console.error('Error downloading all images:', error);
         }
+    };
+
+    const handleDownload = () => {
+        handleDownloadAll(); // Switch Save Draft to Download All
     };
 
     const SIDEBAR_TOOLS = [

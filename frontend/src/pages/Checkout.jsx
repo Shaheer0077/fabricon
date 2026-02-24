@@ -12,12 +12,16 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { jsPDF } from 'jspdf';
 import API from '../api/client';
 
 const Checkout = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { product, customizedImage, color } = location.state || {};
+    const { product, customizedImage, allViews, color } = location.state || {};
+
+    // Track which view is being displayed in the summary
+    const [displayImage, setDisplayImage] = useState(customizedImage);
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -33,6 +37,7 @@ const Checkout = () => {
     ]);
 
     const [orderPlaced, setOrderPlaced] = useState(false);
+    const [trackingInfo, setTrackingInfo] = useState(null);
     const [loading, setLoading] = useState(false);
     const [activeColorPopup, setActiveColorPopup] = useState(null);
 
@@ -128,6 +133,7 @@ const Checkout = () => {
                     product: product._id,
                     title: product.title,
                     image: customizedImage || product.images?.[0],
+                    allViews: allViews, // Sending all customized angles to admin
                     size: item.size,
                     quantity: item.quantity,
                     color: item.color,
@@ -138,7 +144,21 @@ const Checkout = () => {
                 totalPrice: totalPrice
             };
 
-            await API.post('/orders', orderData);
+            const { data } = await API.post('/orders', orderData);
+
+            // Save to localStorage for the User Dashboard
+            const localOrders = JSON.parse(localStorage.getItem('fabricon_orders') || '[]');
+            const newOrder = {
+                id: data._id,
+                token: data.trackingToken,
+                date: new Date().toISOString(),
+                title: product.title,
+                image: customizedImage || product.images?.[0],
+                total: totalPrice
+            };
+            localStorage.setItem('fabricon_orders', JSON.stringify([newOrder, ...localOrders]));
+
+            setTrackingInfo(data);
             setOrderPlaced(true);
         } catch (error) {
             console.error('Error placing order:', error);
@@ -148,28 +168,182 @@ const Checkout = () => {
         }
     };
 
-    if (orderPlaced) {
+    const generateOrderPDF = () => {
+        if (!trackingInfo) return;
+
+        const doc = new jsPDF();
+        const primaryColor = '#ff4d00';
+        const secondaryColor = '#0f172a';
+
+        // Header
+        doc.setFillColor(secondaryColor);
+        doc.rect(0, 0, 210, 40, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(24);
+        doc.setFont('helvetica', 'bold');
+        doc.text('FABRICON', 20, 25);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text('ORDER CONFIRMATION', 150, 25);
+
+        // Order Summary Box
+        doc.setDrawColor(241, 245, 249);
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(20, 50, 170, 40, 3, 3, 'FD');
+
+        doc.setTextColor(100, 116, 139);
+        doc.setFontSize(8);
+        doc.text('TRACKING CODE', 30, 65);
+
+        doc.setTextColor(primaryColor);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(trackingInfo.trackingToken, 30, 78);
+
+        doc.setTextColor(100, 116, 139);
+        doc.setFontSize(8);
+        doc.text('ORDER DATE', 130, 65);
+
+        doc.setTextColor(secondaryColor);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(new Date().toLocaleDateString(), 130, 78);
+
+        // Customer Details
+        doc.setTextColor(secondaryColor);
+        doc.setFontSize(12);
+        doc.text('Customer Information', 20, 110);
+        doc.setDrawColor(primaryColor);
+        doc.line(20, 112, 40, 112);
+
+        doc.setTextColor(71, 85, 105);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Name: ${formData.fullName}`, 20, 125);
+        doc.text(`Email: ${formData.email}`, 20, 132);
+        doc.text(`Phone: ${formData.phone}`, 20, 139);
+        doc.text(`Shipping: ${formData.address}, ${formData.city}, ${formData.zipCode}`, 20, 146);
+
+        // Items
+        doc.setTextColor(secondaryColor);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Order Items', 20, 165);
+        doc.line(20, 167, 35, 167);
+
+        let yPos = 180;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Item', 20, yPos);
+        doc.text('Specs', 100, yPos);
+        doc.text('Total', 170, yPos);
+
+        doc.setDrawColor(241, 245, 249);
+        doc.line(20, yPos + 2, 190, yPos + 2);
+
+        yPos += 12;
+
+        orderItems.forEach((item) => {
+            doc.setFont('helvetica', 'bold');
+            doc.text(product.title, 20, yPos);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.text(`Size: ${item.size} | Qty: ${item.quantity}`, 100, yPos);
+            doc.text(`${item.fabric} | ${item.logoType}`, 100, yPos + 5);
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`$${(getUnitPrice(totalQuantity) * item.quantity).toFixed(2)}`, 170, yPos);
+
+            yPos += 15;
+            if (yPos > 270) doc.addPage();
+        });
+
+        // Footer Total
+        yPos += 10;
+        doc.setDrawColor(secondaryColor);
+        doc.line(140, yPos, 190, yPos);
+        yPos += 10;
+        doc.setFontSize(14);
+        doc.text('Total Amount:', 140, yPos);
+        doc.setTextColor(primaryColor);
+        doc.text(`$${totalPrice.toFixed(2)}`, 175, yPos);
+
+        // Closing Note
+        doc.setTextColor(148, 163, 184);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.text('Thank you for choosing Fabricon! Use your tracking code on our website to see live updates.', 105, 285, { align: 'center' });
+
+        doc.save(`Fabricon_Order_${trackingInfo.trackingToken}.pdf`);
+    };
+
+    if (orderPlaced && trackingInfo) {
         return (
-            <div className="min-h-screen bg-white flex items-center justify-center px-6">
+            <div className="min-h-screen bg-white flex items-center justify-center px-6 py-18">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="max-w-md w-full text-center"
+                    className="max-w-2xl w-full text-center"
                 >
-                    <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8">
+                    <div className="w-24 h-24 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-8 mt-10">
                         <CheckCircle2 className="text-emerald-500" size={48} />
                     </div>
-                    <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight uppercase">Order Received!</h2>
-                    <p className="text-slate-500 font-medium mb-12">
-                        Your custom creation for <span className="text-slate-900 font-bold">{product.title}</span> is being processed.
-                        We'll send a confirmation to <span className="text-slate-900 font-bold">{formData.email}</span> shortly.
+                    <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight uppercase ">Order Confirmed!</h2>
+                    <p className="text-slate-500 font-medium mb-12 max-w-md mx-auto">
+                        Your custom creation for <span className="text-slate-900 font-bold">{product.title}</span> is now in our production pipeline.
                     </p>
-                    <button
-                        onClick={() => navigate('/catalog')}
-                        className="w-full py-5 bg-black text-white rounded-md font-black text-xs uppercase tracking-[0.2em] hover:bg-[#ff4d00] transition-all shadow-xl shadow-slate-200"
-                    >
-                        Continue Shopping
-                    </button>
+
+                    <div className="bg-slate-50 border border-slate-100 rounded-3xl p-8 mb-12 text-left shadow-sm">
+                        <div className="flex items-center justify-between mb-6 pb-6 border-b border-white">
+                            <div>
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tracking Code</h4>
+                                <p className="text-2xl font-black text-[#ff4d00] tracking-wider select-all">{trackingInfo.trackingToken}</p>
+                            </div>
+                            <button
+                                onClick={() => navigate(`/track/${trackingInfo.trackingToken}`)}
+                                className="px-6 py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#ff4d00] hover:text-[#ff4d00] transition-all shadow-sm"
+                            >
+                                Track Now
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Customer</h4>
+                                <p className="text-xs font-bold text-slate-900">{formData.fullName}</p>
+                            </div>
+                            <div>
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Order Date</h4>
+                                <p className="text-xs font-bold text-slate-900">{new Date().toLocaleDateString()}</p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={generateOrderPDF}
+                            className="w-full flex items-center justify-center gap-3 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#ff4d00] transition-all shadow-lg shadow-slate-100"
+                        >
+                            <ShoppingBag size={14} />
+                            Download Order Details (PDF)
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <button
+                            onClick={() => navigate('/dashboard')}
+                            className="flex-1 py-5 bg-white border-2 border-slate-900 text-slate-900 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-50 transition-all"
+                        >
+                            View Dashboard
+                        </button>
+                        <button
+                            onClick={() => navigate('/catalog')}
+                            className="flex-1 py-5 bg-[#ff4d00] text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl shadow-orange-100"
+                        >
+                            Back to Shop
+                        </button>
+                    </div>
                 </motion.div>
             </div>
         );
@@ -438,16 +612,41 @@ const Checkout = () => {
                                 Your Order
                             </h3>
 
-                            <div className="flex gap-8 mb-12 pb-12 border-b-2 border-dashed border-slate-100 relative">
-                                <div className="w-36 aspect-[4/5] bg-slate-50 rounded-[2rem] overflow-hidden border border-slate-100 p-4 group shadow-sm flex items-center justify-center">
-                                    <img src={customizedImage} alt="" className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-700" />
+                            <div className="flex gap-8 mb-12 pb-12 relative items-start">
+                                {/* Left Side: Image & Thumbnails (Fixed Width) */}
+                                <div className="w-36 flex-shrink-0">
+                                    <div className="w-36 aspect-[4/5] bg-slate-50 rounded-[1.5rem] overflow-hidden border border-slate-100 p-4 group shadow-sm flex items-center justify-center relative mb-4">
+                                        <img src={displayImage} alt="" className="w-full h-full object-contain mix-blend-multiply transition-all duration-500" />
+                                    </div>
+
+                                    {/* Thumbnail Gallery - Absolute to prevent shifting text */}
+                                    {allViews && Object.keys(allViews).length > 0 && (
+                                        <div className="relative">
+                                            <div className="absolute top-0 left-0 flex gap-2 overflow-x-auto pb-2  w-[300px]">
+                                                {Object.entries(allViews)
+                                                    .filter(([_, url]) => url)
+                                                    .map(([viewName, url]) => (
+                                                        <button
+                                                            key={viewName}
+                                                            onClick={() => setDisplayImage(url)}
+                                                            className="flex-shrink-0 w-12 h-16 rounded-xl border-2 transition-all p-1 bg-white border-slate-100 hover:border-[#ff4d00]/30 shadow-sm"
+                                                        >
+                                                            <img src={url} alt={viewName} className="w-full h-full object-contain mix-blend-multiply" />
+                                                        </button>
+                                                    ))
+                                                }
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex flex-col justify-center flex-1">
+
+                                {/* Right Side: Details (Will stay in place) */}
+                                <div className="flex flex-col flex-1 pt-1">
                                     <span className="text-[10px] font-black text-[#ff4d00] uppercase tracking-widest mb-2 px-3 py-1 bg-orange-50 rounded-full self-start">{product.category}</span>
                                     <h4 className="text-2xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight">{product.title}</h4>
                                     <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-md border border-slate-100">
                                         <div className="w-6 h-6 rounded-lg border-2 border-white shadow-sm" style={{ backgroundColor: color }} />
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Custom Finish</span>
+                                        <span className="text-[9px] font-black text-slate-400 uppercase ">Custom Finish</span>
                                     </div>
                                 </div>
                             </div>

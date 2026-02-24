@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import Order from "../models/Order.js";
 
 // @desc    Create new order
@@ -7,20 +8,36 @@ export const createOrder = async (req, res) => {
     try {
         const { customer, shippingAddress, items, totalPrice } = req.body;
 
-        if (items && items.length === 0) {
-            res.status(400);
-            throw new Error("No order items");
-        }
+        // Generate a unique tracking token
+        const trackingToken = crypto.randomBytes(4).toString('hex').toUpperCase();
 
         const order = new Order({
             customer,
             shippingAddress,
             items,
             totalPrice,
+            trackingToken
         });
 
         const createdOrder = await order.save();
         res.status(201).json(createdOrder);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get order by tracking token
+// @route   GET /api/orders/track/:token
+// @access  Public
+export const getOrderByToken = async (req, res) => {
+    try {
+        const order = await Order.findOne({ trackingToken: req.params.token.toUpperCase() });
+
+        if (order) {
+            res.json(order);
+        } else {
+            res.status(404).json({ message: "Order not found" });
+        }
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

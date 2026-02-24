@@ -8,6 +8,8 @@ import ProductList from './pages/ProductList';
 import Customizer from './pages/Customizer';
 import ProductView from './pages/ProductView';
 import Checkout from './pages/Checkout';
+import UserDashboard from './pages/UserDashboard';
+import OrderTracking from './pages/OrderTracking';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProductEdit from './pages/admin/AdminProductEdit';
@@ -29,6 +31,8 @@ function App() {
           <Route path="/product/:productId" element={<ProductView />} />
           <Route path="/customize/:productId" element={<Customizer />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/dashboard" element={<UserDashboard />} />
+          <Route path="/track/:token" element={<OrderTracking />} />
 
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminDashboard />} />

@@ -296,22 +296,47 @@ const AdminOrders = () => {
                                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Ordered Blueprints</h3>
                                     <div className="space-y-4">
                                         {selectedOrder.items.map((item, idx) => (
-                                            <div key={idx} className="flex gap-6 p-4 bg-slate-50 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
-                                                <div className="w-20 h-24 bg-white rounded-2xl overflow-hidden p-2 border border-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
-                                                    <img src={item.image} alt="" className="w-full h-full object-contain mix-blend-multiply" />
-                                                </div>
-                                                <div className="flex-grow py-1">
-                                                    <h4 className="font-black text-slate-900 text-sm mb-2">{item.title}</h4>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        <span className="px-2.5 py-1 bg-white border border-slate-200 text-[9px] font-black uppercase rounded-lg">SZ: {item.size}</span>
-                                                        <span className="px-2.5 py-1 bg-white border border-slate-200 text-[9px] font-black uppercase rounded-lg">FAB: {item.fabric}</span>
-                                                        <span className="px-2.5 py-1 bg-white border border-slate-200 text-[9px] font-black uppercase rounded-lg">LOG: {item.logoType}</span>
-                                                        <span className="px-2.5 py-1 bg-white border border-slate-200 text-[9px] font-black uppercase rounded-lg flex items-center gap-1.5">
-                                                            CLR: <div className="w-2 h-2 rounded-full border border-slate-200 shadow-sm" style={{ backgroundColor: item.color }} />
-                                                        </span>
-                                                        <span className="px-2.5 py-1 bg-black text-white text-[9px] font-black uppercase rounded-lg">QTY: {item.quantity}</span>
+                                            <div key={idx} className="flex flex-col gap-4 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
+                                                <div className="flex gap-6">
+                                                    <div className="w-24 h-32 bg-white rounded-3xl overflow-hidden p-3 border border-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 shadow-sm">
+                                                        <img src={item.image} alt="" className="w-full h-full object-contain mix-blend-multiply" />
+                                                    </div>
+                                                    <div className="flex-grow py-1">
+                                                        <h4 className="font-black text-slate-900 text-sm mb-3">{item.title}</h4>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <span className="px-3 py-1.5 bg-white border border-slate-200 text-[9px] font-black uppercase rounded-xl shadow-sm">SZ: {item.size}</span>
+                                                            <span className="px-3 py-1.5 bg-white border border-slate-200 text-[9px] font-black uppercase rounded-xl shadow-sm">FAB: {item.fabric}</span>
+                                                            <span className="px-3 py-1.5 bg-white border border-slate-200 text-[9px] font-black uppercase rounded-xl shadow-sm">LOG: {item.logoType}</span>
+                                                            <span className="px-3 py-1.5 bg-white border border-slate-200 text-[9px] font-black uppercase rounded-xl shadow-sm flex items-center gap-2">
+                                                                CLR: <div className="w-3 h-3 rounded-md border border-slate-200 shadow-inner" style={{ backgroundColor: item.color }} />
+                                                            </span>
+                                                            <span className="px-3 py-1.5 bg-black text-white text-[9px] font-black uppercase rounded-xl shadow-lg">QTY: {item.quantity}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
+
+                                                {/* All Customized Angles */}
+                                                {item.allViews && Object.keys(item.allViews).length > 0 && (
+                                                    <div className="pt-4 border-t border-slate-100">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Customized Angles ({Object.keys(item.allViews).length})</p>
+                                                        <div className="flex flex-wrap gap-3">
+                                                            {Object.entries(item.allViews).map(([angle, url]) => (
+                                                                <a
+                                                                    key={angle}
+                                                                    href={url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="group/angle relative w-16 h-20 bg-white rounded-xl border border-slate-100 p-2 hover:border-[#ff4d00] transition-all"
+                                                                >
+                                                                    <img src={url} alt={angle} title={angle} className="w-full h-full object-contain mix-blend-multiply" />
+                                                                    <div className="absolute -bottom-1 -right-1 bg-black text-white text-[7px] font-black uppercase px-1 rounded-sm opacity-0 group-hover/angle:opacity-100 transition-opacity">
+                                                                        {angle}
+                                                                    </div>
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

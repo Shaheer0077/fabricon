@@ -21,6 +21,7 @@ const orderSchema = mongoose.Schema(
                 },
                 title: { type: String, required: true },
                 image: { type: String, required: true },
+                allViews: { type: Map, of: String }, // Store { 'Front': dataURL, 'Back': dataURL ... }
                 size: { type: String, required: true },
                 quantity: { type: Number, required: true },
                 color: { type: String, required: true },
@@ -35,6 +36,11 @@ const orderSchema = mongoose.Schema(
             required: true,
             default: "Pending",
             enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+        },
+        trackingToken: {
+            type: String,
+            required: true,
+            unique: true,
         },
     },
     {

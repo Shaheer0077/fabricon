@@ -58,20 +58,25 @@ const Customizer = () => {
     const [productColor, setProductColor] = useState('#ffffff');
     const [view, setView] = useState('Front');
     const [showPreview, setShowPreview] = useState(false);
+    const [viewSnapshots, setViewSnapshots] = useState({}); // Stores dataURL for each view thumb
 
     // Multi-View State
     const viewStates = useRef({}); // { 'Front': { json: object, preview: dataURL } }
-    const prevViewRef = useRef('Front');
+    const prevViewRef = useRef(null); // Init to null to avoid overwriting Front on mount
+    const currentViewRef = useRef('Front'); // Tracks latest view for event listeners
 
     const VIEW_OPTIONS = ['Front', 'Back', 'Left sleeve', 'Right sleeve', 'Inside label', 'Outside label'];
 
     const FONT_COMBINATIONS = [
+        { name: 'Stylish Script', text: 'Graceful', font: 'Rochester', size: 50, weight: '400' },
+        { name: 'Cursive Chic', text: 'Chic Style', font: 'Pacifico', size: 45, weight: '400' },
+        { name: 'Retro Soul', text: 'Handcrafted', font: 'Satisfy', size: 45, weight: '400' },
+        { name: 'Power Bold', text: 'IMPACT', font: 'Archivo Black', size: 50, weight: '900' },
+        { name: 'Comic Vibes', text: 'BOOM!', font: 'Bangers', size: 55, weight: '400', spacing: 2 },
+        { name: 'Classic Serif', text: 'ESTABLISHED', font: 'Playfair Display', size: 35, weight: '700', style: 'italic' },
+        { name: 'Arc Signature', text: 'CURVED TEXT', font: 'Rochester', size: 40, weight: '400', isArc: true },
         { name: 'Vintage Sport', text: 'VARSITY', font: 'Bebas Neue', size: 60, weight: '900', style: 'italic' },
         { name: 'Modern Minimal', text: 'ESSENTIALS', font: 'Inter', size: 40, weight: '400', spacing: 10 },
-        { name: 'Bold Street', text: 'CREATIVE', font: 'Montserrat', size: 45, weight: '900' },
-        { name: 'Classic Serif', text: 'ESTABLISHED', font: 'Playfair Display', size: 35, weight: '700', style: 'italic' },
-        { name: 'Retro Wave', text: 'RADICAL', font: 'Courier New', size: 40, weight: 'bold' },
-        { name: 'Luxury Edge', text: 'PREMIUM', font: 'Inter', size: 30, weight: '900', spacing: 15 }
     ];
 
     const READY_QUOTES = [
@@ -117,7 +122,34 @@ const Customizer = () => {
                 const { data } = await API.get(`/products/${productId}`);
                 console.log("Customizer: Product Data Received:", data);
                 setProduct(data);
-                if (data.colors?.length > 0) setProductColor(data.colors[0]);
+
+                // Load persistent state
+                const savedData = localStorage.getItem(`fabricon_design_${productId}`);
+                if (savedData) {
+                    try {
+                        const parsed = JSON.parse(savedData);
+                        if (parsed.color) setProductColor(parsed.color);
+                        if (parsed.states) {
+                            viewStates.current = parsed.states;
+                            // Initialize sidebar thumbnails from saved states
+                            const snapshots = {};
+                            Object.keys(parsed.states).forEach(v => {
+                                if (parsed.states[v].preview) {
+                                    snapshots[v] = parsed.states[v].preview;
+                                }
+                            });
+                            setViewSnapshots(snapshots);
+                        }
+                        console.log("Customizer: Restored saved design from local storage");
+                    } catch (e) {
+                        console.warn("Failed to parse saved design", e);
+                        setProductColor('#ffffff'); // Default to white on error
+                    }
+                } else {
+                    // Default to white if no saved color
+                    setProductColor('#ffffff');
+                }
+
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching product:', error);
@@ -127,6 +159,32 @@ const Customizer = () => {
 
         fetchProduct();
     }, [productId]);
+
+    // Persistence Save Helper
+    const saveToLocalStorage = () => {
+        if (!productId) return;
+        const dataToSave = {
+            color: productColor,
+            states: viewStates.current
+        };
+        localStorage.setItem(`fabricon_design_${productId}`, JSON.stringify(dataToSave));
+    };
+
+    const resetDesign = () => {
+        if (window.confirm("Are you sure you want to reset all designs? This cannot be undone.")) {
+            localStorage.removeItem(`fabricon_design_${productId}`);
+            viewStates.current = {};
+            setViewSnapshots({});
+            if (canvas) canvas.clear();
+            setProductColor('#ffffff');
+            // Trigger background reload
+            setView(current => {
+                const fresh = current === 'Front' ? 'Back' : 'Front';
+                setTimeout(() => setView(current), 10);
+                return fresh;
+            });
+        }
+    };
 
     const [canvasObjects, setCanvasObjects] = useState([]);
     const [colorLayer, setColorLayer] = useState(null);
@@ -252,9 +310,30 @@ const Customizer = () => {
                 console.log("Customizer: Selection cleared");
                 setSelectedObject(null);
             });
-            initCanvas.on('object:added', () => setCanvasObjects([...initCanvas.getObjects()]));
-            initCanvas.on('object:removed', () => setCanvasObjects([...initCanvas.getObjects()]));
-            initCanvas.on('object:modified', () => setCanvasObjects([...initCanvas.getObjects()]));
+            const handleCanvasChanges = () => {
+                const currentObjs = [...initCanvas.getObjects()];
+                setCanvasObjects(currentObjs);
+                updateCurrentViewSnapshot(initCanvas);
+
+                // Real-time persistence for the current view
+                // CRITICAL: Only update viewStates if NOT currently loading/clearing a view
+                // This prevents canvas.clear() from overwriting the new view's data before restoration
+                if (!loadingViewRef.current) {
+                    const activeView = currentViewRef.current;
+                    const json = initCanvas.toDatalessJSON(['id', 'data', 'selectable', 'evented']);
+                    json.objects = json.objects.filter(obj => !obj.data?.isBackground);
+
+                    viewStates.current[activeView] = {
+                        ...viewStates.current[activeView],
+                        json: json
+                    };
+                    saveToLocalStorage();
+                }
+            };
+
+            initCanvas.on('object:added', handleCanvasChanges);
+            initCanvas.on('object:removed', handleCanvasChanges);
+            initCanvas.on('object:modified', handleCanvasChanges);
 
             fabricCanvas.current = initCanvas;
             setCanvas(initCanvas);
@@ -271,6 +350,43 @@ const Customizer = () => {
             }
         };
     }, [loading]);
+
+    const snapshotTimeout = useRef(null);
+    const updateCurrentViewSnapshot = (targetCanvas) => {
+        if (!targetCanvas) return;
+
+        // Don't snap while background is loading to prevent UI freeze and broken snapshots
+        if (loadingViewRef.current) return;
+
+        // Debounce snapshot calls to handle multiple rapid changes (like enlivenObjects or batch adds)
+        if (snapshotTimeout.current) clearTimeout(snapshotTimeout.current);
+
+        snapshotTimeout.current = setTimeout(() => {
+            try {
+                const activeView = currentViewRef.current;
+                // Use JPEG for slightly faster processing if possible, or lower multiplier
+                const previewUrl = targetCanvas.toDataURL({
+                    format: 'png',
+                    multiplier: 0.15,
+                    quality: 0.5
+                });
+
+                setViewSnapshots(prev => {
+                    if (prev[activeView] === previewUrl) return prev;
+
+                    // Also store preview in viewStates for reload persistence
+                    if (viewStates.current[activeView]) {
+                        viewStates.current[activeView].preview = previewUrl;
+                        saveToLocalStorage();
+                    }
+
+                    return { ...prev, [activeView]: previewUrl };
+                });
+            } catch (err) {
+                console.warn("Snapshot failed:", err);
+            }
+        }, 150); // 150ms buffer
+    };
 
     // Race condition prevention
     const loadingViewRef = useRef(null);
@@ -308,7 +424,7 @@ const Customizer = () => {
 
                     canvas.remove(loadingText);
                     if (!img) {
-                        console.error("Customizer: Image load failed");
+                        console.error("Customizer: Image load failed for", viewName);
                         return resolve();
                     }
 
@@ -328,7 +444,7 @@ const Customizer = () => {
 
                     // 2. Color Mask Layer
                     img.clone((mask) => {
-                        if (loadingViewRef.current !== viewName) return;
+                        if (loadingViewRef.current !== viewName) return resolve();
 
                         mask.set({
                             absolutePositioned: true,
@@ -355,7 +471,7 @@ const Customizer = () => {
 
                         // 3. Highlight Boost
                         img.clone((lights) => {
-                            if (loadingViewRef.current !== viewName) return;
+                            if (loadingViewRef.current !== viewName) return resolve();
 
                             lights.set({
                                 scaleX: scale, scaleY: scale,
@@ -382,44 +498,57 @@ const Customizer = () => {
             console.log(`Customizer: Switching from ${prevView} to ${view}`);
             loadingViewRef.current = view;
 
-            // A. Save Previous State
-            if (canvas.getObjects().length > 0 || viewStates.current[prevView]) {
+            // A. Save Previous State (Only on actual switch)
+            if (prevView && prevView !== view && (canvas.getObjects().length > 0 || viewStates.current[prevView])) {
                 const json = canvas.toDatalessJSON(['id', 'data', 'selectable', 'evented']);
                 json.objects = json.objects.filter(obj => !obj.data?.isBackground);
                 const previewUrl = canvas.toDataURL({ format: 'png', multiplier: 0.5 });
 
                 viewStates.current[prevView] = {
+                    ...viewStates.current[prevView],
                     json: json,
                     preview: previewUrl
                 };
+                saveToLocalStorage(); // Persist on view change
             }
 
             // B. Prepare for New View
             canvas.clear();
             setSelectedObject(null);
 
-            // C. Load Background FIRST
-            const imageUrl = getViewImage(view);
-            await loadBackground(imageUrl, view);
+            try {
+                // C. Load Background FIRST
+                const imageUrl = getViewImage(view);
+                await loadBackground(imageUrl, view);
 
-            // D. Restore Objects AFTER Background is ready
-            if (loadingViewRef.current !== view) return;
+                // D. Restore Objects AFTER Background is ready
+                if (loadingViewRef.current === view) {
+                    const savedState = viewStates.current[view];
+                    if (savedState && savedState.json && savedState.json.objects) {
+                        console.log(`Customizer: Restoring objects for ${view}`);
 
-            const savedState = viewStates.current[view];
-            if (savedState && savedState.json && savedState.json.objects) {
-                console.log(`Customizer: Restoring objects for ${view}`);
+                        fabric.util.enlivenObjects(savedState.json.objects, (enlivenedObjects) => {
+                            if (loadingViewRef.current !== view) return;
 
-                // Use enlivenObjects instead of loadFromJSON to prevent clearing the background
-                fabric.util.enlivenObjects(savedState.json.objects, (enlivenedObjects) => {
-                    if (loadingViewRef.current !== view) return;
+                            enlivenedObjects.forEach(obj => {
+                                canvas.add(obj);
+                                canvas.bringToFront(obj);
+                            });
+                            canvas.requestRenderAll();
 
-                    enlivenedObjects.forEach(obj => {
-                        canvas.add(obj);
-                        // Ensure it stays on top of background
-                        canvas.bringToFront(obj);
-                    });
-                    canvas.requestRenderAll();
-                }, 'fabric');
+                            // Done restoration, trigger snapshot
+                            loadingViewRef.current = null;
+                            updateCurrentViewSnapshot(canvas);
+                        }, 'fabric');
+                    } else {
+                        // No objects to restore, trigger snapshot
+                        loadingViewRef.current = null;
+                        updateCurrentViewSnapshot(canvas);
+                    }
+                }
+            } catch (err) {
+                console.error("View Change Error:", err);
+                loadingViewRef.current = null;
             }
 
             prevViewRef.current = view;
@@ -429,12 +558,19 @@ const Customizer = () => {
 
     }, [view, product, canvas]); // Re-run when view changes (or product loads)
 
+    // Separate Effect to Sync View Ref
+    useEffect(() => {
+        currentViewRef.current = view;
+    }, [view]);
+
     // Separate Effect to Update Color on Current Layer
     useEffect(() => {
         if (colorLayer && canvas) {
             console.log("Customizer: Updating Color Layer Fill:", productColor);
             colorLayer.set('fill', productColor);
             canvas.requestRenderAll();
+            updateCurrentViewSnapshot(canvas);
+            saveToLocalStorage(); // Persist on color change
         }
     }, [productColor, colorLayer, canvas]);
 
@@ -443,7 +579,7 @@ const Customizer = () => {
             return;
         }
 
-        const text = new fabric.IText(config.text || 'YOUR TEXT', {
+        const textOptions = {
             left: 100,
             top: 150,
             fontFamily: config.font || 'Inter',
@@ -455,7 +591,19 @@ const Customizer = () => {
             cornerColor: '#ff4d00',
             cornerStyle: 'circle',
             padding: 10
-        });
+        };
+
+        if (config.isArc) {
+            // Simplified semi-circle path for Fabric.js textPath
+            const path = new fabric.Path('M 10 80 Q 95 10 180 80', {
+                fill: 'transparent',
+                stroke: 'transparent',
+                visible: false
+            });
+            textOptions.path = path;
+        }
+
+        const text = new fabric.IText(config.text || 'YOUR TEXT', textOptions);
 
         canvas.add(text);
         canvas.centerObject(text);
@@ -580,24 +728,36 @@ const Customizer = () => {
         selectedObject.set(prop, value);
         canvas.requestRenderAll();
         setCanvasObjects([...canvas.getObjects()]);
+        saveToLocalStorage(); // Save changes to property
     };
 
     const generateFinalImage = async () => {
         if (!canvas || !product) return;
 
         try {
-            // 1. Generate PNG from Fabric canvas
-            const dataURL = canvas.toDataURL({
+            // 1. Snapshot current view one last time to be sure
+            const currentDataURL = canvas.toDataURL({
                 format: 'png',
                 quality: 1,
-                multiplier: 1.5 // optional: increases resolution
+                multiplier: 1.5
             });
 
-            // 2. Navigate to checkout page, passing the image and product info
+            // 2. Collect all available view images
+            const allViews = {};
+            VIEW_OPTIONS.forEach(v => {
+                if (v === view) {
+                    allViews[v] = currentDataURL;
+                } else if (viewStates.current[v]?.preview) {
+                    allViews[v] = viewStates.current[v].preview;
+                }
+            });
+
+            // 3. Navigate to checkout page, passing everything
             navigate('/checkout', {
                 state: {
                     product,
-                    customizedImage: dataURL, // the generated image
+                    customizedImage: currentDataURL, // primary display
+                    allViews: allViews,             // all edited angles
                     color: productColor
                 }
             });
@@ -723,7 +883,7 @@ const Customizer = () => {
             </div>
 
             {/* 2. Secondary Sidebar */}
-            <div className="w-[380px] bg-white border-r border-slate-200 z-20 flex flex-col shadow-2xl">
+            <div className="w-[320px] bg-white border-r border-slate-200 z-20 flex flex-col shadow-2xl transition-all">
                 <div className="p-7 h-full overflow-y-auto custom-scrollbar">
                     <AnimatePresence mode="wait">
 
@@ -827,8 +987,13 @@ const Customizer = () => {
                                             <button
                                                 key={i}
                                                 onClick={() => addCustomText(f)}
-                                                className="group relative h-24 bg-slate-50 rounded-2xl border border-slate-100 hover:border-[#ff4d00]/30 hover:bg-white hover:shadow-xl transition-all flex flex-col items-center justify-center p-4"
+                                                className="group relative h-24 bg-slate-50 rounded-2xl border border-slate-100 hover:border-[#ff4d00]/30 hover:bg-white hover:shadow-xl transition-all flex flex-col items-center justify-center p-4 overflow-hidden"
                                             >
+                                                {f.isArc && (
+                                                    <div className="absolute top-0 right-0 bg-[#ff4d00] text-white text-[7px] font-black px-2 py-0.5 rounded-bl-lg uppercase tracking-tighter">
+                                                        Curved
+                                                    </div>
+                                                )}
                                                 <span className="text-xs font-black line-clamp-1 text-center font-style" style={{ fontFamily: f.font, fontWeight: f.weight, fontStyle: f.style || 'normal' }}>{f.text}</span>
                                                 <span className="absolute bottom-2 text-[8px] font-black text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">{f.name}</span>
                                             </button>
@@ -991,10 +1156,17 @@ const Customizer = () => {
             {/* 3. Main Studio Workbench */}
             <div className="grow flex flex-col relative overflow-hidden">
                 <div className="h-14 bg-white flex items-center justify-between px-6 z-20 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                        {VIEW_OPTIONS.map(v => (
-                            <button key={v} onClick={() => setView(v)} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${view === v ? 'bg-[#ff4d00]/10 text-[#ff4d00]' : 'text-slate-400 hover:text-slate-600'}`}>{v}</button>
-                        ))}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Edition Mode:</span>
+                            <div className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-orange-50 text-[#ff4d00]`}>{view} View</div>
+                        </div>
+                        <button
+                            onClick={resetDesign}
+                            className="text-[9px] font-black text-rose-400 hover:text-rose-600 uppercase tracking-widest transition-colors flex items-center gap-1.5"
+                        >
+                            <Trash2 size={12} /> Reset All
+                        </button>
                     </div>
 
                     <button
@@ -1041,6 +1213,43 @@ const Customizer = () => {
                             <ShoppingCart /> Checkout
                         </button>
                     </div>
+                </div>
+            </div>
+
+            {/* 4. Right Sidebar: Angle Navigator */}
+            <div className="w-[140px] bg-white border-l border-slate-200 flex flex-col py-6 px-4 gap-4 z-30 overflow-y-auto custom-scrollbar">
+                <div className="mb-2 px-1">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">View Angles</h4>
+                </div>
+                <div className="flex flex-col gap-4">
+                    {VIEW_OPTIONS.map((v) => {
+                        const img = viewSnapshots[v] || getViewImage(v);
+                        return (
+                            <button
+                                key={v}
+                                onClick={() => setView(v)}
+                                className={`group relative aspect-[4/5] w-full rounded-2xl border-2 transition-all p-2 bg-slate-50 overflow-hidden ${view === v
+                                    ? 'border-[#ff4d00] shadow-lg shadow-orange-500/10'
+                                    : 'border-transparent hover:border-slate-200'
+                                    }`}
+                            >
+                                <div className="h-full w-full flex items-center justify-center">
+                                    {img ? (
+                                        <img src={img} alt={v} className="w-full h-full object-contain mix-blend-multiply transition-transform group-hover:scale-105" />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-1 opacity-20">
+                                            <ImageIcon size={20} />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/80 to-transparent pt-4 pb-1">
+                                    <span className={`text-[8px] font-black uppercase tracking-tighter block text-center ${view === v ? 'text-[#ff4d00]' : 'text-slate-400'}`}>
+                                        {v}
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

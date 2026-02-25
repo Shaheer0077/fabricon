@@ -624,7 +624,7 @@ const Checkout = () => {
                                         <div className="relative">
                                             <div className="absolute top-0 left-0 flex gap-2 overflow-x-auto pb-2  w-[300px]">
                                                 {Object.entries(allViews)
-                                                    .filter(([_, url]) => url)
+                                                    .filter(([_, url]) => url != displayImage)
                                                     .map(([viewName, url]) => (
                                                         <button
                                                             key={viewName}

@@ -2,10 +2,10 @@ import React from 'react';
 import Sidebar from '../components/catalog/Sidebar';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Hoodie from '../assets/Images/hoodie.png'
-import Men from '../assets/Images/Men.png'
-import Women from '../assets/Images/Women.png'
-import Kids from '../assets/Images/Kids.png'
+import Hoodie from '../assets/Images/hoodie.jpg'
+import Men from '../assets/Images/Men.jpg'
+import Women from '../assets/Images/Women.jpg'
+import Kids from '../assets/Images/Kids.jpg'
 const categories = [
     {
         title: "Men",

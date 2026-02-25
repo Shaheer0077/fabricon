@@ -30,6 +30,7 @@ const AdminOrders = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [previewImage, setPreviewImage] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -166,7 +167,7 @@ const AdminOrders = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.1 }}
                                 key={i}
-                                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-5 group hover:shadow-xl hover:shadow-slate-200/50 transition-all border-b-4 hover:border-b-[#ff4d00]"
+                                className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 group hover:shadow-xl hover:shadow-slate-200/50 transition-all border-b-4 hover:border-b-[#ff4d00]"
                             >
                                 <div className={`w-14 h-14 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner`}>
                                     <stat.icon size={24} />
@@ -184,7 +185,7 @@ const AdminOrders = () => {
                         <div className="px-10 py-6 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Active Orders</span>
-                                <span className="px-3 py-1 bg-white border border-slate-200 text-slate-400 text-[10px] font-black rounded-full shadow-sm">{filteredOrders.length} Results</span>
+                                <span className="px-3 py-1 bg-white border border-slate-200 text-slate-400 text-[10px] font-black rounded-xl shadow-sm">{filteredOrders.length} Results</span>
                             </div>
                         </div>
 
@@ -202,7 +203,7 @@ const AdminOrders = () => {
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {loading ? (
-                                        <tr><td colSpan="6" className="px-10 py-24 text-center"><div className="w-10 h-10 border-4 border-[#ff4d00]/20 border-t-[#ff4d00] rounded-full animate-spin mx-auto shadow-lg shadow-orange-500/10" /></td></tr>
+                                        <tr><td colSpan="6" className="px-10 py-24 text-center"><div className="w-10 h-10 border-4 border-[#ff4d00]/20 border-t-[#ff4d00] rounded-xl animate-spin mx-auto shadow-lg shadow-orange-500/10" /></td></tr>
                                     ) : filteredOrders.length === 0 ? (
                                         <tr><td colSpan="6" className="px-10 py-32 text-center text-slate-300 font-black uppercase text-xs tracking-[0.2em]">No processing units match the filter</td></tr>
                                     ) : (
@@ -271,12 +272,12 @@ const AdminOrders = () => {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col"
+                            className="bg-white w-full max-w-4xl max-h-[90vh] rounded-md shadow-2xl overflow-hidden flex flex-col"
                         >
                             {/* Modal Header */}
                             <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className={`p-3 rounded-2xl border ${getStatusColor(selectedOrder.status)}`}>
+                                    <div className={`p-3 rounded-md border ${getStatusColor(selectedOrder.status)}`}>
                                         {React.createElement(getStatusIcon(selectedOrder.status), { size: 24 })}
                                     </div>
                                     <div>
@@ -284,7 +285,7 @@ const AdminOrders = () => {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Status: {selectedOrder.status}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setSelectedOrder(null)} className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-rose-500 rounded-2xl transition-all shadow-sm">
+                                <button onClick={() => setSelectedOrder(null)} className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-rose-500 rounded-xl transition-all shadow-sm">
                                     <XCircle size={24} />
                                 </button>
                             </div>
@@ -296,9 +297,12 @@ const AdminOrders = () => {
                                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Ordered Blueprints</h3>
                                     <div className="space-y-4">
                                         {selectedOrder.items.map((item, idx) => (
-                                            <div key={idx} className="flex flex-col gap-4 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
+                                            <div key={idx} className="flex flex-col gap-4 p-6 bg-slate-50 rounded-md border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
                                                 <div className="flex gap-6">
-                                                    <div className="w-24 h-32 bg-white rounded-3xl overflow-hidden p-3 border border-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 shadow-sm">
+                                                    <div
+                                                        className="w-24 h-32 bg-white rounded-md overflow-hidden p-3 border border-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 shadow-sm cursor-zoom-in"
+                                                        onClick={() => setPreviewImage({ url: item.image, title: item.title })}
+                                                    >
                                                         <img src={item.image} alt="" className="w-full h-full object-contain mix-blend-multiply" />
                                                     </div>
                                                     <div className="flex-grow py-1">
@@ -310,7 +314,7 @@ const AdminOrders = () => {
                                                             <span className="px-3 py-1.5 bg-white border border-slate-200 text-[9px] font-black uppercase rounded-xl shadow-sm flex items-center gap-2">
                                                                 CLR: <div className="w-3 h-3 rounded-md border border-slate-200 shadow-inner" style={{ backgroundColor: item.color }} />
                                                             </span>
-                                                            <span className="px-3 py-1.5 bg-black text-white text-[9px] font-black uppercase rounded-xl shadow-lg">QTY: {item.quantity}</span>
+                                                            <span className="px-3 py-1.5 bg-black text-white text-[9px] font-black uppercase rounded-md shadow-lg">QTY: {item.quantity}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -321,18 +325,16 @@ const AdminOrders = () => {
                                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Customized Angles ({Object.keys(item.allViews).length})</p>
                                                         <div className="flex flex-wrap gap-3">
                                                             {Object.entries(item.allViews).map(([angle, url]) => (
-                                                                <a
+                                                                <div
                                                                     key={angle}
-                                                                    href={url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="group/angle relative w-16 h-20 bg-white rounded-xl border border-slate-100 p-2 hover:border-[#ff4d00] transition-all"
+                                                                    onClick={() => setPreviewImage({ url, title: `${item.title} - ${angle}` })}
+                                                                    className="group/angle relative w-16 h-20 bg-white rounded-md border border-slate-100 p-2 hover:border-[#ff4d00] transition-all cursor-zoom-in"
                                                                 >
                                                                     <img src={url} alt={angle} title={angle} className="w-full h-full object-contain mix-blend-multiply" />
                                                                     <div className="absolute -bottom-1 -right-1 bg-black text-white text-[7px] font-black uppercase px-1 rounded-sm opacity-0 group-hover/angle:opacity-100 transition-opacity">
                                                                         {angle}
                                                                     </div>
-                                                                </a>
+                                                                </div>
                                                             ))}
                                                         </div>
                                                     </div>
@@ -340,7 +342,7 @@ const AdminOrders = () => {
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="p-8 bg-slate-900 rounded-[2rem] text-white">
+                                    <div className="p-8 bg-slate-900 rounded-md text-white">
                                         <div className="flex justify-between items-end">
                                             <div>
                                                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Amount</p>
@@ -397,7 +399,7 @@ const AdminOrders = () => {
                                                 <button
                                                     key={status}
                                                     onClick={() => updateStatus(selectedOrder._id, status)}
-                                                    className={`px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${selectedOrder.status === status ? 'border-black bg-black text-white shadow-xl shadow-slate-200' : 'border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                                                    className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${selectedOrder.status === status ? 'border-black bg-black text-white shadow-xl shadow-slate-200' : 'border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
                                                 >
                                                     {status}
                                                 </button>
@@ -408,6 +410,67 @@ const AdminOrders = () => {
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* Image Preview Modal */}
+            <AnimatePresence>
+                {previewImage && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setPreviewImage(null)}
+                        className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-12 bg-slate-950/90 backdrop-blur-xl cursor-zoom-out"
+                    >
+                        <motion.button
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="absolute top-8 right-8 p-4 bg-white/10 hover:bg-rose-500 text-white rounded-full transition-all group"
+                            onClick={() => setPreviewImage(null)}
+                        >
+                            <XCircle size={32} />
+                        </motion.button>
+
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative max-w-5xl max-h-full flex flex-col items-center gap-6"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="bg-white p-6 md:p-10 rounded-md shadow-2xl relative group/img overflow-hidden">
+                                <img
+                                    src={previewImage.url}
+                                    alt={previewImage.title}
+                                    className="max-h-[70vh] w-auto object-contain mix-blend-multiply"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
+                            </div>
+
+                            <div className="flex flex-col items-center text-center">
+                                <h4 className="text-white text-xl font-black uppercase tracking-widest">{previewImage.title}</h4>
+                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mt-2">Design Blueprint Preview</p>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <a
+                                    href={previewImage.url}
+                                    download={`${previewImage.title}.png`}
+                                    className="px-8 py-4 bg-white text-black font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-[#ff4d00] hover:text-white transition-all shadow-xl"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    Download High-Res
+                                </a>
+                                <button
+                                    onClick={() => setPreviewImage(null)}
+                                    className="px-8 py-4 border border-white/20 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-white/10 transition-all"
+                                >
+                                    Close Preview
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

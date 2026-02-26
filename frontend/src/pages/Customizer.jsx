@@ -13,34 +13,24 @@ console.log("Customizer: Module File Loaded", {
 import {
     Type,
     Image as ImageIcon,
-    Palette,
     Trash2,
-    Download,
-    ChevronLeft,
     Layers,
-    MousePointer2,
-    Undo2,
-    Redo2,
-    Save,
     Plus,
     Box,
-    Layout,
     Upload,
     Sticker,
     Zap,
     Crown,
     Droplets,
-    HelpCircle,
     X,
     ShoppingCart,
     Maximize2,
     Search,
-    ChevronDown,
     Copy,
-    Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import API from '../api/client';
+import { saveDesign as saveDesignToDB, getDesign, deleteDesign } from '../utils/db';
 
 const Customizer = () => {
     console.log("Customizer: COMPONENT_INIT_START");
@@ -123,30 +113,51 @@ const Customizer = () => {
                 console.log("Customizer: Product Data Received:", data);
                 setProduct(data);
 
-                // Load persistent state
-                const savedData = localStorage.getItem(`fabricon_design_${productId}`);
-                if (savedData) {
-                    try {
-                        const parsed = JSON.parse(savedData);
-                        if (parsed.color) setProductColor(parsed.color);
-                        if (parsed.states) {
-                            viewStates.current = parsed.states;
-                            // Initialize sidebar thumbnails from saved states
-                            const snapshots = {};
-                            Object.keys(parsed.states).forEach(v => {
-                                if (parsed.states[v].preview) {
-                                    snapshots[v] = parsed.states[v].preview;
-                                }
-                            });
-                            setViewSnapshots(snapshots);
+                // --- Persistence Load with IndexedDB + localStorage migration ---
+                let parsed = null;
+
+                // 1. Try IndexedDB first
+                try {
+                    parsed = await getDesign(`fabricon_design_${productId}`);
+                    if (parsed) {
+                        console.log("Customizer: Restored saved design from IndexedDB");
+                    }
+                } catch (e) {
+                    console.warn("Customizer: IndexedDB read failed, will try localStorage fallback", e);
+                }
+
+                // 2. Migration: If nothing in IndexedDB, check localStorage
+                if (!parsed) {
+                    const lsData = localStorage.getItem(`fabricon_design_${productId}`);
+                    if (lsData) {
+                        try {
+                            parsed = JSON.parse(lsData);
+                            // Migrate to IndexedDB
+                            await saveDesignToDB(`fabricon_design_${productId}`, parsed);
+                            localStorage.removeItem(`fabricon_design_${productId}`);
+                            console.log("Customizer: Migrated design from localStorage to IndexedDB");
+                        } catch (e) {
+                            console.warn("Customizer: localStorage migration failed", e);
                         }
-                        console.log("Customizer: Restored saved design from local storage");
-                    } catch (e) {
-                        console.warn("Failed to parse saved design", e);
-                        setProductColor('#ffffff'); // Default to white on error
+                    }
+                }
+
+                // 3. Apply loaded state
+                if (parsed) {
+                    if (parsed.color) setProductColor(parsed.color);
+                    if (parsed.states) {
+                        viewStates.current = parsed.states;
+                        // Initialize sidebar thumbnails from saved states
+                        const snapshots = {};
+                        Object.keys(parsed.states).forEach(v => {
+                            if (parsed.states[v].preview) {
+                                snapshots[v] = parsed.states[v].preview;
+                            }
+                        });
+                        setViewSnapshots(snapshots);
                     }
                 } else {
-                    // Default to white if no saved color
+                    // Default to white if no saved data found
                     setProductColor('#ffffff');
                 }
 
@@ -160,18 +171,25 @@ const Customizer = () => {
         fetchProduct();
     }, [productId]);
 
-    // Persistence Save Helper
-    const saveToLocalStorage = () => {
+    // Persistence Save Helper — writes to IndexedDB (no size limit)
+    const saveDesign = () => {
         if (!productId) return;
         const dataToSave = {
             color: productColor,
             states: viewStates.current
         };
-        localStorage.setItem(`fabricon_design_${productId}`, JSON.stringify(dataToSave));
+        // Fire-and-forget; errors are logged but don't block the UI
+        saveDesignToDB(`fabricon_design_${productId}`, dataToSave).catch(err =>
+            console.error("Customizer: Failed to save design to IndexedDB", err)
+        );
     };
 
     const resetDesign = () => {
         if (window.confirm("Are you sure you want to reset all designs? This cannot be undone.")) {
+            // Delete from IndexedDB (also clear any remaining localStorage entry for safety)
+            deleteDesign(`fabricon_design_${productId}`).catch(err =>
+                console.error("Customizer: Failed to delete design from IndexedDB", err)
+            );
             localStorage.removeItem(`fabricon_design_${productId}`);
             viewStates.current = {};
             setViewSnapshots({});
@@ -327,7 +345,7 @@ const Customizer = () => {
                         ...viewStates.current[activeView],
                         json: json
                     };
-                    saveToLocalStorage();
+                    saveDesign();
                 }
             };
 
@@ -367,8 +385,8 @@ const Customizer = () => {
                 // Use JPEG for slightly faster processing if possible, or lower multiplier
                 const previewUrl = targetCanvas.toDataURL({
                     format: 'png',
-                    multiplier: 0.15,
-                    quality: 0.5
+                    multiplier: 1,
+                    quality: 0.8
                 });
 
                 setViewSnapshots(prev => {
@@ -377,7 +395,7 @@ const Customizer = () => {
                     // Also store preview in viewStates for reload persistence
                     if (viewStates.current[activeView]) {
                         viewStates.current[activeView].preview = previewUrl;
-                        saveToLocalStorage();
+                        saveDesign();
                     }
 
                     return { ...prev, [activeView]: previewUrl };
@@ -502,14 +520,14 @@ const Customizer = () => {
             if (prevView && prevView !== view && (canvas.getObjects().length > 0 || viewStates.current[prevView])) {
                 const json = canvas.toDatalessJSON(['id', 'data', 'selectable', 'evented']);
                 json.objects = json.objects.filter(obj => !obj.data?.isBackground);
-                const previewUrl = canvas.toDataURL({ format: 'png', multiplier: 0.5 });
+                const previewUrl = canvas.toDataURL({ format: 'png', multiplier: 1 });
 
                 viewStates.current[prevView] = {
                     ...viewStates.current[prevView],
                     json: json,
                     preview: previewUrl
                 };
-                saveToLocalStorage(); // Persist on view change
+                saveDesign(); // Persist on view change
             }
 
             // B. Prepare for New View
@@ -563,15 +581,128 @@ const Customizer = () => {
         currentViewRef.current = view;
     }, [view]);
 
-    // Separate Effect to Update Color on Current Layer
+    // --- Off-screen snapshot generator for non-active views ---
+    // Creates a temporary Fabric canvas, renders the view's background + color overlay
+    // + any saved user objects, and returns a thumbnail dataURL.
+    const generateViewSnapshot = (viewName, color) => {
+        return new Promise((resolve) => {
+            const imageUrl = getViewImage(viewName);
+            if (!imageUrl) return resolve(null);
+
+            const el = document.createElement('canvas');
+            el.width = 500;
+            el.height = 580;
+            const offCanvas = new fabric.Canvas(el, {
+                width: 500, height: 580,
+                backgroundColor: '#ffffff',
+                renderOnAddRemove: false,
+                enableRetinaScaling: false
+            });
+
+            const cleanup = (result) => {
+                try { offCanvas.dispose(); } catch (_) { }
+                resolve(result);
+            };
+
+            fabric.Image.fromURL(imageUrl, (img) => {
+                if (!img) return cleanup(null);
+
+                const scale = Math.min(460 / img.width, 540 / img.height);
+                const center = { x: 250, y: 290 };
+
+                img.set({
+                    scaleX: scale, scaleY: scale,
+                    left: center.x, top: center.y,
+                    originX: 'center', originY: 'center',
+                    selectable: false, evented: false
+                });
+                offCanvas.add(img);
+                offCanvas.sendToBack(img);
+
+                img.clone((mask) => {
+                    mask.set({
+                        absolutePositioned: true,
+                        left: center.x, top: center.y,
+                        originX: 'center', originY: 'center',
+                        scaleX: scale, scaleY: scale
+                    });
+
+                    const colorOverlay = new fabric.Rect({
+                        width: img.width * scale,
+                        height: img.height * scale,
+                        left: center.x, top: center.y,
+                        originX: 'center', originY: 'center',
+                        fill: color,
+                        globalCompositeOperation: 'multiply',
+                        selectable: false, evented: false,
+                        clipPath: mask
+                    });
+                    offCanvas.add(colorOverlay);
+                    offCanvas.moveTo(colorOverlay, 1);
+
+                    // Restore any saved user objects on top of the background
+                    const savedState = viewStates.current[viewName];
+                    if (savedState?.json?.objects?.length > 0) {
+                        fabric.util.enlivenObjects(savedState.json.objects, (objs) => {
+                            objs.forEach(obj => {
+                                offCanvas.add(obj);
+                                offCanvas.bringToFront(obj);
+                            });
+                            offCanvas.requestRenderAll();
+                            const snap = offCanvas.toDataURL({ format: 'png', multiplier: 1, quality: 0.8 });
+                            cleanup(snap);
+                        }, 'fabric');
+                    } else {
+                        offCanvas.requestRenderAll();
+                        const snap = offCanvas.toDataURL({ format: 'png', multiplier: 1, quality: 0.8 });
+                        cleanup(snap);
+                    }
+                });
+            }, { crossOrigin: 'anonymous' });
+        });
+    };
+
+    // Ref to debounce the all-views color regeneration
+    const colorSyncTimeout = useRef(null);
+
+    // Separate Effect to Update Color on Current Layer + all other view thumbnails
     useEffect(() => {
         if (colorLayer && canvas) {
             console.log("Customizer: Updating Color Layer Fill:", productColor);
             colorLayer.set('fill', productColor);
             canvas.requestRenderAll();
             updateCurrentViewSnapshot(canvas);
-            saveToLocalStorage(); // Persist on color change
+            saveDesign(); // Persist on color change
         }
+
+        // Debounce regeneration for other views to avoid thrashing during rapid clicks
+        if (colorSyncTimeout.current) clearTimeout(colorSyncTimeout.current);
+        colorSyncTimeout.current = setTimeout(async () => {
+            if (!product) return;
+            const otherViews = VIEW_OPTIONS.filter(v => v !== currentViewRef.current);
+            const results = await Promise.all(
+                otherViews.map(async (v) => {
+                    const snap = await generateViewSnapshot(v, productColor);
+                    return { view: v, snap };
+                })
+            );
+
+            results.forEach(({ view: v, snap }) => {
+                if (!snap) return;
+                // Update sidebar thumbnail
+                setViewSnapshots(prev => ({ ...prev, [v]: snap }));
+                // Keep viewStates in sync so the preview persists on reload
+                if (viewStates.current[v]) {
+                    viewStates.current[v].preview = snap;
+                } else {
+                    // View hasn't been visited yet — create a minimal entry so the thumbnail is remembered
+                    viewStates.current[v] = { preview: snap };
+                }
+            });
+
+            // Persist updated previews
+            if (results.some(r => r.snap)) saveDesign();
+        }, 300);
     }, [productColor, colorLayer, canvas]);
 
     const addCustomText = (config) => {
@@ -633,7 +764,7 @@ const Customizer = () => {
         const objects = canvas.getObjects().filter(obj => !obj.data?.isBackground);
         // Even if empty, we might want to capture the background state?
         // Actually, we just need a visual snapshot.
-        const previewUrl = canvas.toDataURL({ format: 'png', multiplier: 0.5 });
+        const previewUrl = canvas.toDataURL({ format: 'png', multiplier: 1 });
 
         // Update state
         const json = canvas.toDatalessJSON(['id', 'data', 'selectable', 'evented']);
@@ -688,6 +819,9 @@ const Customizer = () => {
                 canvas.centerObject(imgObj);
                 canvas.setActiveObject(imgObj);
                 canvas.requestRenderAll();
+
+                // reset the file input
+                e.target.value = '';
             }, { crossOrigin: 'anonymous' });
         };
         reader.readAsDataURL(file);
@@ -728,7 +862,7 @@ const Customizer = () => {
         selectedObject.set(prop, value);
         canvas.requestRenderAll();
         setCanvasObjects([...canvas.getObjects()]);
-        saveToLocalStorage(); // Save changes to property
+        saveDesign(); // Save changes to property
     };
 
     const generateFinalImage = async () => {
@@ -778,7 +912,7 @@ const Customizer = () => {
             currentViewJson.objects = currentViewJson.objects.filter(obj => !obj.data?.isBackground);
             viewStates.current[currentView] = {
                 json: currentViewJson,
-                preview: canvas.toDataURL({ format: 'png', multiplier: 0.5 })
+                preview: canvas.toDataURL({ format: 'png', multiplier: 1 })
             };
 
             // Create a dedicated folder in the ZIP

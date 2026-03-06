@@ -1,25 +1,45 @@
-import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import API from '../../api/client';
 
 const Sidebar = () => {
     const location = useLocation();
+    const [categories, setCategories] = useState([]);
+    const [expandedCategories, setExpandedCategories] = useState({});
+    const [loading, setLoading] = useState(true);
 
-    const menuItems = [
-        { name: "All products", path: "/catalog" },
-        { name: "Men", path: "/catalog/men" },
-        { name: "Women", path: "/catalog/women" },
-        { name: "Kids", path: "/catalog/kids" },
-        { name: "Hoodies", path: "/catalog/hoodies" },
-        { name: "Accessories", path: "/catalog/accessories" },
-    ];
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const { data } = await API.get('/categories');
+                setCategories(data);
 
-    const topMenu = [
-        "Special offers",
-        "New products",
-        "Bestsellers",
-        "Eco-friendly",
-    ];
+                // Keep current category expanded if we're on a category page
+                const pathParts = location.pathname.split('/');
+                if (pathParts[1] === 'catalog' && pathParts[2]) {
+                    const currentCat = data.find(c => c.name.toLowerCase() === pathParts[2].toLowerCase());
+                    if (currentCat) {
+                        setExpandedCategories(prev => ({ ...prev, [currentCat._id]: true }));
+                    }
+                }
+
+                setLoading(false);
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+                setLoading(false);
+            }
+        };
+
+        fetchCategories();
+    }, [location.pathname]);
+
+    const toggleCategory = (id) => {
+        setExpandedCategories(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
 
     const hoverColor = "hover:text-[#ff4d00]";
 
@@ -28,22 +48,76 @@ const Sidebar = () => {
             <nav className="space-y-8">
                 {/* Categories */}
                 <div>
-                    <h3 className="px-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Categories</h3>
+                    <h3 className="px-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <Layers size={12} /> Categories
+                    </h3>
                     <ul className="space-y-1">
-                        {menuItems.map((item, i) => {
-                            const isActive = location.pathname === item.path;
+                        <li>
+                            <Link
+                                to="/catalog"
+                                className={`flex items-center justify-between px-3 py-2 text-[13px] font-bold rounded-xl transition-all ${location.pathname === '/catalog'
+                                    ? "bg-orange-50 text-[#ff4d00]"
+                                    : `text-slate-600 ${hoverColor}`
+                                    }`}
+                            >
+                                <span>All products</span>
+                            </Link>
+                        </li>
+
+                        {loading ? (
+                            <div className="px-3 py-4 space-y-2">
+                                <div className="h-4 bg-slate-50 rounded animate-pulse w-3/4"></div>
+                                <div className="h-4 bg-slate-50 rounded animate-pulse w-1/2"></div>
+                                <div className="h-4 bg-slate-50 rounded animate-pulse w-2/3"></div>
+                            </div>
+                        ) : categories.map((cat) => {
+                            const isExpanded = expandedCategories[cat._id];
+                            const isActive = location.pathname === `/catalog/${cat.name.toLowerCase()}`;
+
                             return (
-                                <li key={i}>
-                                    <Link
-                                        to={item.path}
-                                        className={`flex items-center justify-between px-3 py-2 text-[13px] font-bold rounded-xl transition-all ${isActive
+                                <li key={cat._id} className="space-y-1">
+                                    <div className="flex items-center">
+                                        <Link
+                                            to={`/catalog/${cat.name.toLowerCase()}`}
+                                            className={`flex-grow flex items-center justify-between px-3 py-2 text-[13px] font-bold rounded-xl transition-all ${isActive
                                                 ? "bg-orange-50 text-[#ff4d00]"
                                                 : `text-slate-600 ${hoverColor}`
-                                            }`}
-                                    >
-                                        <span>{item.name}</span>
-                                        <ChevronDown size={14} className={isActive ? "text-[#ff4d00]" : "text-slate-300"} />
-                                    </Link>
+                                                }`}
+                                        >
+                                            <span>{cat.name}</span>
+                                        </Link>
+                                        {cat.subcategories && cat.subcategories.length > 0 && (
+                                            <button
+                                                onClick={() => toggleCategory(cat._id)}
+                                                className="p-2 text-slate-300 hover:text-[#ff4d00] transition-colors"
+                                            >
+                                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {isExpanded && cat.subcategories && (
+                                        <ul className="pl-6 space-y-1 overflow-hidden transition-all duration-300">
+                                            {cat.subcategories.map((sub, idx) => {
+                                                const subPath = `/catalog/${cat.name.toLowerCase()}?subcategory=${sub.toLowerCase()}`;
+                                                const isSubActive = location.pathname + location.search === subPath;
+
+                                                return (
+                                                    <li key={idx}>
+                                                        <Link
+                                                            to={subPath}
+                                                            className={`block px-3 py-1.5 text-[12px] font-semibold border-l-2 transition-all ${isSubActive
+                                                                ? "border-[#ff4d00] text-[#ff4d00] bg-orange-50/50"
+                                                                : "border-transparent text-slate-500 hover:text-[#ff4d00] hover:border-slate-200"
+                                                                }`}
+                                                        >
+                                                            {sub}
+                                                        </Link>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
                                 </li>
                             );
                         })}
@@ -56,7 +130,7 @@ const Sidebar = () => {
                 <div>
                     <h3 className="px-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Highlights</h3>
                     <ul className="space-y-1">
-                        {topMenu.map((item, i) => (
+                        {["Special offers", "New products", "Bestsellers", "Eco-friendly"].map((item, i) => (
                             <li key={i}>
                                 <button className={`block w-full text-left px-3 py-2 text-[13px] font-bold text-slate-600 ${hoverColor} transition-colors whitespace-nowrap`}>
                                     {item}

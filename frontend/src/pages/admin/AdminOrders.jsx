@@ -439,11 +439,11 @@ const AdminOrders = () => {
                             className="relative max-w-5xl max-h-full flex flex-col items-center gap-6"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="bg-white p-6 md:p-10 rounded-md shadow-2xl relative group/img overflow-hidden">
+                            <div className="bg-slate-50 rounded-2xl shadow-2xl relative group/img overflow-hidden flex items-center justify-center" style={{ width: 480, height: 560 }}>
                                 <img
                                     src={previewImage.url}
                                     alt={previewImage.title}
-                                    className="max-h-[70vh] w-auto object-contain mix-blend-multiply"
+                                    className="w-full h-full object-contain"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
                             </div>

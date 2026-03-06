@@ -13,13 +13,17 @@ const ProductList = () => {
     const [loading, setLoading] = useState(true);
 
     const queryParams = new URLSearchParams(location.search);
+    const subcategory = queryParams.get('subcategory');
     const searchQuery = queryParams.get('q');
 
-    const categoryTitle = searchQuery
-        ? `Results for "${searchQuery}"`
-        : (category
-            ? category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-            : "All Products");
+    const getTitle = () => {
+        if (searchQuery) return `Results for "${searchQuery}"`;
+        if (subcategory) return subcategory.charAt(0).toUpperCase() + subcategory.slice(1);
+        if (category) return category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        return "All Products";
+    };
+
+    const categoryTitle = getTitle();
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -38,9 +42,14 @@ const ProductList = () => {
                     );
                 } else if (category && category.toLowerCase() !== 'all') {
                     filtered = data.filter(p => {
-                        const productCat = p.category?.toLowerCase().replace(/ /g, '-');
+                        const productCat = p.category?.toLowerCase();
                         const urlCat = category.toLowerCase();
-                        return productCat === urlCat;
+                        const catMatch = productCat === urlCat || productCat?.replace(/ /g, '-') === urlCat;
+
+                        if (subcategory) {
+                            return catMatch && p.subcategory?.toLowerCase() === subcategory.toLowerCase();
+                        }
+                        return catMatch;
                     });
                 }
 
@@ -68,7 +77,15 @@ const ProductList = () => {
                         {(category || searchQuery) && (
                             <>
                                 <ChevronRight size={12} />
-                                <span className="text-slate-900">{categoryTitle}</span>
+                                <Link to={subcategory ? `/catalog/${category}` : '#'} className={subcategory ? "hover:text-[#ff4d00]" : "text-slate-900"}>
+                                    {category ? category.charAt(0).toUpperCase() + category.slice(1) : categoryTitle}
+                                </Link>
+                                {subcategory && (
+                                    <>
+                                        <ChevronRight size={12} />
+                                        <span className="text-slate-900">{categoryTitle}</span>
+                                    </>
+                                )}
                             </>
                         )}
                     </div>

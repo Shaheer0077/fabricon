@@ -12,6 +12,9 @@ const AdminProductEdit = () => {
     const [title, setTitle] = useState('');
     const [price, setPrice] = useState(0);
     const [category, setCategory] = useState('');
+    const [subcategory, setSubcategory] = useState('');
+    const [categories, setCategories] = useState([]);
+    const [subcategories, setSubcategories] = useState([]);
     const [description, setDescription] = useState('');
     const [colors, setColors] = useState('');
     const [sizes, setSizes] = useState('');
@@ -33,10 +36,22 @@ const AdminProductEdit = () => {
         const adminInfo = localStorage.getItem('adminInfo');
         if (!adminInfo) {
             navigate('/admin/login');
-        } else if (id) {
-            fetchProduct();
+        } else {
+            fetchCategories();
+            if (id) {
+                fetchProduct();
+            }
         }
     }, [id, navigate]);
+
+    const fetchCategories = async () => {
+        try {
+            const { data } = await API.get('/categories');
+            setCategories(data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchProduct = async () => {
         try {
@@ -45,6 +60,7 @@ const AdminProductEdit = () => {
             setTitle(data.title);
             setPrice(data.price);
             setCategory(data.category);
+            setSubcategory(data.subcategory || '');
             setDescription(data.description);
             setColors(data.colors ? data.colors.join(', ') : '');
             setSizes(data.sizes ? data.sizes.join(', ') : '');
@@ -68,6 +84,15 @@ const AdminProductEdit = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (category) {
+            const selectedCat = categories.find(c => c.name === category);
+            setSubcategories(selectedCat ? selectedCat.subcategories : []);
+        } else {
+            setSubcategories([]);
+        }
+    }, [category, categories]);
 
     const uploadFileHandler = (e) => {
         const file = e.target.files[0];
@@ -93,6 +118,7 @@ const AdminProductEdit = () => {
             formData.append('title', title);
             formData.append('price', price);
             formData.append('category', category);
+            formData.append('subcategory', subcategory);
             formData.append('description', description);
 
             colors.split(',').map(c => c.trim()).filter(c => c).forEach(c => formData.append('colors', c));
@@ -273,15 +299,31 @@ const AdminProductEdit = () => {
                                         <select
                                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-[#ff4d00]/30 focus:bg-white rounded-xl font-bold text-sm text-slate-900 outline-none transition-all appearance-none cursor-pointer"
                                             value={category}
-                                            onChange={(e) => setCategory(e.target.value)}
+                                            onChange={(e) => {
+                                                setCategory(e.target.value);
+                                                setSubcategory(''); // Reset subcategory when category changes
+                                            }}
                                             required
                                         >
                                             <option value="">Select Category</option>
-                                            <option value="Men">Men</option>
-                                            <option value="Women">Women</option>
-                                            <option value="Kids">Kids</option>
-                                            <option value="Hoodies">Hoodies</option>
-                                            <option value="Accessories">Accessories</option>
+                                            {categories.map(cat => (
+                                                <option key={cat._id} value={cat.name}>{cat.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-2 px-1">Subcategory</label>
+                                        <select
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-[#ff4d00]/30 focus:bg-white rounded-xl font-bold text-sm text-slate-900 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                                            value={subcategory}
+                                            onChange={(e) => setSubcategory(e.target.value)}
+                                            disabled={!category || subcategories.length === 0}
+                                        >
+                                            <option value="">Select Subcategory</option>
+                                            {subcategories.map((sub, idx) => (
+                                                <option key={idx} value={sub}>{sub}</option>
+                                            ))}
                                         </select>
                                     </div>
 

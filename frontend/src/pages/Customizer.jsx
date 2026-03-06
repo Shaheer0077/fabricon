@@ -1293,11 +1293,11 @@ const Customizer = () => {
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Edition Mode:</span>
-                            <div className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-orange-50 text-[#ff4d00]`}>{view} View</div>
+                            <div className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-orange-100 text-[#ff4d00] cursor-pointer`}>{view} View</div>
                         </div>
                         <button
                             onClick={resetDesign}
-                            className="text-[9px] font-black text-rose-400 hover:text-rose-600 uppercase tracking-widest transition-colors flex items-center gap-1.5"
+                            className="px-3 py-1.5 rounded-lg text-[10px] font-black bg-orange-100 text-[#ff4d00]  hover:text-rose-600 uppercase tracking-wider cursor-pointer  flex items-center gap-1.5"
                         >
                             <Trash2 size={12} /> Reset All
                         </button>

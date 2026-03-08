@@ -7,13 +7,11 @@ import authRoutes from "./routes/authRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import createDefaultAdmin from "./config/DefaultAdmin.js";
-import seedCategories from "./config/CategorySeeder.js";
 
 
 dotenv.config();
 connectDB();
 createDefaultAdmin();
-seedCategories();
 
 const app = express();
 

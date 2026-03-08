@@ -47,7 +47,9 @@ const ProductList = () => {
                         const catMatch = productCat === urlCat || productCat?.replace(/ /g, '-') === urlCat;
 
                         if (subcategory) {
-                            return catMatch && p.subcategory?.toLowerCase() === subcategory.toLowerCase();
+                            const productSub = p.subcategory?.toLowerCase();
+                            const urlSub = subcategory.toLowerCase();
+                            return catMatch && (productSub === urlSub || productSub?.replace(/ /g, '-') === urlSub);
                         }
                         return catMatch;
                     });
@@ -62,7 +64,7 @@ const ProductList = () => {
         };
 
         fetchProducts();
-    }, [category, searchQuery]);
+    }, [category, searchQuery, subcategory]);
 
     return (
         <div className="bg-[#fafafa] min-h-screen pt-24 pb-20">

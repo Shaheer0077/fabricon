@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ExternalLink, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ExternalLink, LogOut, Layers } from 'lucide-react';
 
 const AdminSidebar = () => {
     const navigate = useNavigate();
@@ -30,8 +30,8 @@ const AdminSidebar = () => {
                 <Link
                     to="/admin"
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${currentPath === '/admin' || currentPath.startsWith('/admin/product')
-                            ? 'bg-[#ff4d00]/10 text-[#ff4d00]'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        ? 'bg-[#ff4d00]/10 text-[#ff4d00]'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
                     <LayoutDashboard size={18} /> <span className="text-sm">Catalog</span>
@@ -40,11 +40,21 @@ const AdminSidebar = () => {
                 <Link
                     to="/admin/orders"
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${currentPath === '/admin/orders'
-                            ? 'bg-[#ff4d00]/10 text-[#ff4d00]'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        ? 'bg-[#ff4d00]/10 text-[#ff4d00]'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
                     <ShoppingBag size={18} /> <span className="text-sm">Orders</span>
+                </Link>
+
+                <Link
+                    to="/admin/categories"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${currentPath === '/admin/categories'
+                        ? 'bg-[#ff4d00]/10 text-[#ff4d00]'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                >
+                    <Layers size={18} /> <span className="text-sm">Categories</span>
                 </Link>
 
                 <Link

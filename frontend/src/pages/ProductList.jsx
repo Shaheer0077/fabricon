@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import Sidebar from '../components/catalog/Sidebar';
 import ProductCard from '../components/catalog/ProductCard';
-import { ChevronRight, SlidersHorizontal, ChevronDown, LayoutGrid, List, Search } from 'lucide-react';
+import { ChevronRight, SlidersHorizontal, ChevronDown, LayoutGrid, List, Search, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import API from '../api/client';
 
@@ -11,13 +11,19 @@ const ProductList = () => {
     const location = useLocation();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState('grid');
+    const [showMobileFilters, setShowMobileFilters] = useState(false);
 
     const queryParams = new URLSearchParams(location.search);
     const subcategory = queryParams.get('subcategory');
     const searchQuery = queryParams.get('q');
+    const highlight = queryParams.get('highlight');
 
     const getTitle = () => {
         if (searchQuery) return `Results for "${searchQuery}"`;
+        if (highlight === 'special-offers') return "Special Offers";
+        if (highlight === 'new-products') return "New Arrivals";
+        if (highlight === 'eco-friendly') return "Eco-Friendly Collection";
         if (subcategory) return subcategory.charAt(0).toUpperCase() + subcategory.slice(1);
         if (category) return category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         return "All Products";
@@ -55,6 +61,14 @@ const ProductList = () => {
                     });
                 }
 
+                if (highlight === 'special-offers') {
+                    filtered = filtered.filter(p => p.isSpecialOffer);
+                } else if (highlight === 'eco-friendly') {
+                    filtered = filtered.filter(p => p.isEcoFriendly);
+                } else if (highlight === 'new-products') {
+                    filtered = filtered.slice(0, 6);
+                }
+
                 setProducts(filtered);
                 setLoading(false);
             } catch (error) {
@@ -64,7 +78,8 @@ const ProductList = () => {
         };
 
         fetchProducts();
-    }, [category, searchQuery, subcategory]);
+        setShowMobileFilters(false);
+    }, [category, searchQuery, subcategory, highlight]);
 
     return (
         <div className="bg-[#fafafa] min-h-screen pt-24 pb-20">
@@ -90,6 +105,12 @@ const ProductList = () => {
                                 )}
                             </>
                         )}
+                        {highlight && !category && !searchQuery && (
+                            <>
+                                <ChevronRight size={12} />
+                                <span className="text-slate-900">{categoryTitle}</span>
+                            </>
+                        )}
                     </div>
 
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -107,15 +128,44 @@ const ProductList = () => {
 
                         <div className="flex items-center gap-3">
                             <div className="flex p-1 bg-white rounded-xl border border-slate-200">
-                                <button className="p-2 text-[#ff4d00] bg-orange-50 rounded-lg"><LayoutGrid size={18} /></button>
-                                <button className="p-2 text-slate-400 hover:text-slate-600"><List size={18} /></button>
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? "text-[#ff4d00] bg-orange-50" : "text-slate-400 hover:text-slate-600"}`}
+                                >
+                                    <LayoutGrid size={18} />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? "text-[#ff4d00] bg-orange-50" : "text-slate-400 hover:text-slate-600"}`}
+                                >
+                                    <List size={18} />
+                                </button>
                             </div>
-                            <button className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-[#ff4d00] transition-all">
+                            <button
+                                onClick={() => setShowMobileFilters(true)}
+                                className="lg:hidden flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-[#ff4d00] transition-all"
+                            >
                                 <SlidersHorizontal size={16} /> Filter
                             </button>
                         </div>
                     </div>
                 </div>
+
+                {/* Mobile Filter Overlay */}
+                {showMobileFilters && (
+                    <div className="fixed inset-0 z-50 lg:hidden flex">
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowMobileFilters(false)}></div>
+                        <div className="relative bg-white w-4/5 max-w-sm h-full overflow-y-auto p-6 flex-col animate-in slide-in-from-left duration-300">
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight">Filters</h2>
+                                <button onClick={() => setShowMobileFilters(false)} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-slate-100 transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <Sidebar />
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex flex-col lg:flex-row gap-12">
                     {/* Sidebar */}
@@ -144,10 +194,11 @@ const ProductList = () => {
                                 </Link>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                            <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" : "flex flex-col gap-6"}>
                                 {products.map((product) => (
                                     <ProductCard
                                         key={product._id}
+                                        viewMode={viewMode}
                                         product={{
                                             id: product._id,
                                             title: product.title,

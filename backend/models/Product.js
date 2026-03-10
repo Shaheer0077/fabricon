@@ -21,7 +21,9 @@ const productSchema = new mongoose.Schema({
     customizable: {
         type: Boolean,
         default: true
-    }
+    },
+    isSpecialOffer: { type: Boolean, default: false },
+    isEcoFriendly: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model("Product", productSchema);

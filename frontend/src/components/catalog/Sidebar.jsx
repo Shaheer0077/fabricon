@@ -54,8 +54,8 @@ const Sidebar = () => {
                     <ul className="space-y-1">
                         <li>
                             <Link
-                                to="/catalog"
-                                className={`flex items-center justify-between px-3 py-2 text-[13px] font-bold rounded-xl transition-all ${location.pathname === '/catalog'
+                                to="/all-products"
+                                className={`flex items-center justify-between px-3 py-2 text-[13px] font-bold rounded-xl transition-all ${location.pathname === '/all-products'
                                     ? "bg-orange-50 text-[#ff4d00]"
                                     : `text-slate-600 ${hoverColor}`
                                     }`}
@@ -130,13 +130,26 @@ const Sidebar = () => {
                 <div>
                     <h3 className="px-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Highlights</h3>
                     <ul className="space-y-1">
-                        {["Special offers", "New products", "Bestsellers", "Eco-friendly"].map((item, i) => (
-                            <li key={i}>
-                                <button className={`block w-full text-left px-3 py-2 text-[13px] font-bold text-slate-600 ${hoverColor} transition-colors whitespace-nowrap`}>
-                                    {item}
-                                </button>
-                            </li>
-                        ))}
+                        {[
+                            { label: "Special offers", slug: "special-offers" },
+                            { label: "New products", slug: "new-products" },
+                            { label: "Eco-friendly", slug: "eco-friendly" }
+                        ].map((item, i) => {
+                            const isHighlightActive = location.pathname === '/all-products' && location.search === `?highlight=${item.slug}`;
+                            return (
+                                <li key={i}>
+                                    <Link
+                                        to={`/all-products?highlight=${item.slug}`}
+                                        className={`block w-full text-left px-3 py-2 text-[13px] font-bold rounded-xl transition-colors whitespace-nowrap ${isHighlightActive
+                                            ? "bg-orange-50 text-[#ff4d00]"
+                                            : `text-slate-600 ${hoverColor}`
+                                            }`}
+                                    >
+                                        {item.label}
+                                    </Link>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
             </nav>

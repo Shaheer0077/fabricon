@@ -85,7 +85,6 @@ const AdminDashboard = () => {
                                 <option value="Women">Women</option>
                                 <option value="Kids">Kids</option>
                                 <option value="Hoodies">Hoodies</option>
-                                <option value="Accessories">Accessories</option>
                             </select>
                             <div className="relative group">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#ff4d00] transition-colors" size={16} />

@@ -19,6 +19,8 @@ const AdminProductEdit = () => {
     const [colors, setColors] = useState('');
     const [sizes, setSizes] = useState('');
     const [images, setImages] = useState([]);
+    const [isSpecialOffer, setIsSpecialOffer] = useState(false);
+    const [isEcoFriendly, setIsEcoFriendly] = useState(false);
 
     // View States
     const [views, setViews] = useState({
@@ -65,6 +67,8 @@ const AdminProductEdit = () => {
             setColors(data.colors ? data.colors.join(', ') : '');
             setSizes(data.sizes ? data.sizes.join(', ') : '');
             setImages(data.images || []);
+            setIsSpecialOffer(data.isSpecialOffer || false);
+            setIsEcoFriendly(data.isEcoFriendly || false);
 
             // Set Views
             if (data.views) {
@@ -123,6 +127,8 @@ const AdminProductEdit = () => {
 
             colors.split(',').map(c => c.trim()).filter(c => c).forEach(c => formData.append('colors', c));
             sizes.split(',').map(s => s.trim()).filter(s => s).forEach(s => formData.append('sizes', s));
+            formData.append('isSpecialOffer', isSpecialOffer);
+            formData.append('isEcoFriendly', isEcoFriendly);
 
             // General Images
             images.forEach((img) => {
@@ -347,6 +353,38 @@ const AdminProductEdit = () => {
                                             value={colors}
                                             onChange={(e) => setColors(e.target.value)}
                                         />
+                                    </div>
+
+                                    <div className="md:col-span-2 flex flex-col sm:flex-row gap-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div className="relative flex items-center justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only"
+                                                    checked={isSpecialOffer}
+                                                    onChange={(e) => setIsSpecialOffer(e.target.checked)}
+                                                />
+                                                <div className={`w-5 h-5 rounded border ${isSpecialOffer ? 'bg-[#ff4d00] border-[#ff4d00]' : 'bg-white border-slate-300'} transition-colors flex items-center justify-center shadow-sm group-hover:border-[#ff4d00]/50`}>
+                                                    {isSpecialOffer && <Check size={14} className="text-white" />}
+                                                </div>
+                                            </div>
+                                            <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Special Offer</span>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div className="relative flex items-center justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only"
+                                                    checked={isEcoFriendly}
+                                                    onChange={(e) => setIsEcoFriendly(e.target.checked)}
+                                                />
+                                                <div className={`w-5 h-5 rounded border ${isEcoFriendly ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300'} transition-colors flex items-center justify-center shadow-sm group-hover:border-emerald-500/50`}>
+                                                    {isEcoFriendly && <Check size={14} className="text-white" />}
+                                                </div>
+                                            </div>
+                                            <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Eco-friendly</span>
+                                        </label>
                                     </div>
 
                                     <div className="md:col-span-2">

@@ -17,7 +17,7 @@ export const getProducts = async (req, res) => {
 // @access  Private/Admin
 export const createProduct = async (req, res) => {
     try {
-        const { title, description, price, category, subcategory, colors, sizes } = req.body;
+        const { title, description, price, category, subcategory, colors, sizes, isSpecialOffer, isEcoFriendly } = req.body;
         const files = req.files || {};
 
         // Process General Images
@@ -42,7 +42,9 @@ export const createProduct = async (req, res) => {
             colors: colors ? (Array.isArray(colors) ? colors : colors.split(',')) : [],
             sizes: sizes ? (Array.isArray(sizes) ? sizes : sizes.split(',')) : [],
             images: imageUrls,
-            views
+            views,
+            isSpecialOffer: isSpecialOffer === 'true' || isSpecialOffer === true,
+            isEcoFriendly: isEcoFriendly === 'true' || isEcoFriendly === true
         });
 
         const createdProduct = await product.save();
@@ -92,7 +94,7 @@ export const updateProduct = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
         if (product) {
-            const { title, description, price, category, subcategory, colors, sizes, existingImages } = req.body;
+            const { title, description, price, category, subcategory, colors, sizes, existingImages, isSpecialOffer, isEcoFriendly } = req.body;
             const files = req.files || {};
 
             product.title = title || product.title;
@@ -102,6 +104,8 @@ export const updateProduct = async (req, res) => {
             product.subcategory = subcategory !== undefined ? subcategory : product.subcategory;
             product.colors = colors ? (Array.isArray(colors) ? colors : colors.split(',')) : product.colors;
             product.sizes = sizes ? (Array.isArray(sizes) ? sizes : sizes.split(',')) : product.sizes;
+            if (isSpecialOffer !== undefined) product.isSpecialOffer = isSpecialOffer === 'true' || isSpecialOffer === true;
+            if (isEcoFriendly !== undefined) product.isEcoFriendly = isEcoFriendly === 'true' || isEcoFriendly === true;
 
             // Handle General Images
             let newImages = [];

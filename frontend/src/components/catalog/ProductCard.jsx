@@ -3,16 +3,16 @@ import { Star, Palette, ShoppingCart, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, viewMode = 'grid' }) => {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="group premium-card flex flex-col p-4"
+            className={`group premium-card p-4 ${viewMode === 'list' ? 'flex flex-col sm:flex-row gap-6 sm:items-center w-full' : 'flex flex-col'}`}
         >
             {/* Image Container */}
-            <div className="relative aspect-4/5 bg-slate-50 rounded-xl overflow-hidden mb-6 flex items-center justify-center">
+            <div className={`relative bg-slate-50 rounded-xl overflow-hidden flex items-center justify-center shrink-0 ${viewMode === 'list' ? 'w-full sm:w-48 h-48 mb-0' : 'aspect-4/5 mb-6'}`}>
                 {product.badge && (
                     <div className="absolute top-4 left-4 z-10 px-3 py-1.5 bg-white text-slate-900 text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm">
                         {product.badge}
@@ -43,7 +43,7 @@ const ProductCard = ({ product }) => {
             </div>
 
             {/* Product Details */}
-            <div className="space-y-3 px-2 pb-2">
+            <div className={`space-y-3 px-2 flex-grow w-full ${viewMode === 'list' ? 'pb-0' : 'pb-2'}`}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
                         <Star size={12} className="text-amber-400 fill-amber-400" />

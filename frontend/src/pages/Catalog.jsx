@@ -82,7 +82,7 @@ const Catalog = () => {
                                 ))}
 
                                 <Link
-                                    to={`/catalog`}
+                                    to={`/all-products`}
                                     className="group block relative overflow-hidden rounded-md h-[280px] bg-slate-900 flex flex-col items-center justify-center p-8 text-center"
                                 >
                                     <div className="w-10 h-10 bg-[#ff4d00] rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">

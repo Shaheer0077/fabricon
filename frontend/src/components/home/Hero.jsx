@@ -2,6 +2,13 @@ import React, { useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { ArrowRight, Sparkles, Palette, Box, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import KidWear from '../../assets/Images/KidsWears.png'
+import TrackSuit from '../../assets/Images/TrackSuits.png'
+import MensWear from '../../assets/Images/MenWears.png'
+import WomenWear from '../../assets/Images/WomenWears.png'
+import Hoodies from '../../assets/Images/OversizedHoodie.png'
+
+
 
 const Hero = () => {
     const navigate = useNavigate();
@@ -19,11 +26,11 @@ const Hero = () => {
     }, [marqueeControls]);
 
     const products = [
-        { img: "https://static.cdn.printful.com/s/static/v877/images/homepage/image-slider/w22b/frame-1__555.png?v=2", title: "Premium Hoodie" },
-        { img: "https://static.cdn.printful.com/s/static/v877/images/homepage/image-slider/w22b/frame-3__555.png?v=2", title: "Custom Tee" },
-        { img: "https://static.cdn.printful.com/s/static/v877/images/homepage/image-slider/w177/frame-6__375.png", title: "Kids Wears" },
-        { img: "https://static.cdn.printful.com/s/static/v877/images/homepage/image-slider/w177/frame-2__375.png", title: "Hoodies" },
-        { img: "https://static.cdn.printful.com/s/static/v877/images/homepage/image-slider/w177/frame-6__375.png", title: "Tote Bags" },
+        { img: TrackSuit, title: "Track Suits", path: "/catalog/men" },
+        { img: MensWear, title: "Mens Wears", path: "/catalog/men" },
+        { img: KidWear, title: "Kids Wears", path: "/catalog/kids" },
+        { img: Hoodies, title: "Hoodies", path: "/catalog/hoodies" },
+        { img: WomenWear, title: "Women Wears", path: "/catalog/women" },
     ];
 
     return (
@@ -86,22 +93,25 @@ const Hero = () => {
                                 <motion.div
                                     key={index}
                                     whileHover={{ scale: 1.05, y: -5 }}
+                                    onClick={() => navigate(product.path)}
                                     className="relative w-64 h-[340px] cursor-pointer group"
                                 >
                                     {/* Tilted Orange Background */}
                                     <div className="absolute inset-0 rounded-2xl bg-[#ff4d00] rotate-3 group-hover:rotate-0 transition-transform duration-500 shadow-xl opacity-90" />
 
                                     {/* Front Card */}
-                                    <div className="relative w-full h-full bg-white rounded-2xl p-6 flex flex-col items-center justify-center shadow-lg border border-slate-100">
-                                        <div className="w-full aspect-square relative mb-4">
+                                    <div className="relative w-full h-full bg-white rounded-2xl p-4 flex flex-col justify-between shadow-lg border border-slate-100">
+                                        <div className="w-full flex-1 relative mb-3 min-h-[180px]">
                                             <div className="absolute inset-0 bg-slate-50 rounded-xl group-hover:scale-105 transition-transform duration-500" />
-                                            <img
-                                                src={product.img}
-                                                alt={product.title}
-                                                className="relative z-10 w-full h-full object-contain mix-blend-multiply"
-                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <img
+                                                    src={product.img}
+                                                    alt={product.title}
+                                                    className="relative z-10 w-[90%] h-[90%] object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="text-center">
+                                        <div className="text-center flex-shrink-0">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-[#ff4d00] mb-1">Customizable</p>
                                             <h3 className="text-base font-bold text-slate-900 line-clamp-1">{product.title}</h3>
                                         </div>
